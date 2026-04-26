@@ -3,66 +3,227 @@
 @tailwind utilities;
 
 @layer base {
-  :root {
-    --background: 0 0% 100%;
-    --foreground: 0 0% 3.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 0 0% 3.9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 3.9%;
-    --primary: 0 0% 9%;
-    --primary-foreground: 0 0% 98%;
-    --secondary: 0 0% 96.1%;
-    --secondary-foreground: 0 0% 9%;
-    --muted: 0 0% 96.1%;
-    --muted-foreground: 0 0% 45.1%;
-    --accent: 0 0% 96.1%;
-    --accent-foreground: 0 0% 9%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 89.8%;
-    --input: 0 0% 89.8%;
-    --ring: 0 0% 3.9%;
-    --chart-1: 12 76% 61%;
-    --chart-2: 173 58% 39%;
-    --chart-3: 197 37% 24%;
-    --chart-4: 43 74% 66%;
-    --chart-5: 27 87% 67%;
-    --radius: 0.5rem;
-  }
-  .dark {
-    --background: 0 0% 3.9%;
-    --foreground: 0 0% 98%;
-    --card: 0 0% 3.9%;
-    --card-foreground: 0 0% 98%;
-    --popover: 0 0% 3.9%;
-    --popover-foreground: 0 0% 98%;
-    --primary: 0 0% 98%;
-    --primary-foreground: 0 0% 9%;
-    --secondary: 0 0% 14.9%;
-    --secondary-foreground: 0 0% 98%;
-    --muted: 0 0% 14.9%;
-    --muted-foreground: 0 0% 63.9%;
-    --accent: 0 0% 14.9%;
-    --accent-foreground: 0 0% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 14.9%;
-    --input: 0 0% 14.9%;
-    --ring: 0 0% 83.1%;
-    --chart-1: 220 70% 50%;
-    --chart-2: 160 60% 45%;
-    --chart-3: 30 80% 55%;
-    --chart-4: 280 65% 60%;
-    --chart-5: 340 75% 55%;
-  }
+	:root {
+		/* PRIMITIVES: NEVER USE THIS IN COMPONENTS*/
+
+		/* Brand (Maroon) */
+		--color-brand-50: #fef4f7;
+		--color-brand-100: #fce9ee;
+		--color-brand-200: #f4bacb;
+		--color-brand-300: #ed8ba8;
+		--color-brand-400: #e65c85;
+		--color-brand-500: #df2d62;
+		--color-brand-600: #b91c4b;
+		--color-brand-700-base: #8a1538;
+		--color-brand-800: #500c20;
+		--color-brand-900: #160309;
+
+		/* Grey */
+		--color-grey-50: #f9fafb;
+		--color-grey-100: #f3f4f6;
+		--color-grey-200: #e5e7ea;
+		--color-grey-300: #d2d5db;
+		--color-grey-400: #9ea2ae;
+		--color-grey-500: #6d717f;
+		--color-grey-600: #4d5461;
+		--color-grey-700: #394050;
+		--color-grey-800: #212936;
+		--color-grey-900: #131927;
+
+		/* Green */
+		--color-green-50: #ecf8ef;
+		--color-green-100: #c5e9cd;
+		--color-green-200: #a9deb4;
+		--color-green-300: #81cf92;
+		--color-green-400: #69c57d;
+		--color-green-500: #43b75d;
+		--color-green-600: #3da755;
+		--color-green-700: #308242;
+		--color-green-800: #256533;
+		--color-green-900: #1c4d27;
+
+		/* Red */
+		--color-red-50: #fdecec;
+		--color-red-100: #fac5c3;
+		--color-red-200: #f7a9a7;
+		--color-red-300: #f4827e;
+		--color-red-400: #f16965;
+		--color-red-500: #ee443f;
+		--color-red-600: #d93e39;
+		--color-red-700: #a9302d;
+		--color-red-800: #832523;
+		--color-red-900: #641d1a;
+
+		/* Yellow */
+		--color-yellow-50: #fff7e6;
+		--color-yellow-100: #ffe5b0;
+		--color-yellow-200: #ffd88a;
+		--color-yellow-300: #ffc654;
+		--color-yellow-400: #ffbb33;
+		--color-yellow-500: #ffaa00;
+		--color-yellow-600: #e89b00;
+		--color-yellow-700: #b57900;
+		--color-yellow-800: #8c5e00;
+		--color-yellow-900: #6b4700;
+
+		/* Blue */
+		--color-blue-50: #e6f4ff;
+		--color-blue-100: #b0deff;
+		--color-blue-200: #8aceff;
+		--color-blue-300: #54b8ff;
+		--color-blue-400: #33aaff;
+		--color-blue-500: #0095ff;
+		--color-blue-600: #0088e8;
+		--color-blue-700: #006ab5;
+		--color-blue-800: #00528c;
+		--color-blue-900: #003f6b;
+
+		/* Black */
+		--color-black: 0 0 0;
+		--color-black-4: rgb(var(--color-black) / 0.04);
+		--color-black-8: rgb(var(--color-black) / 0.08);
+		--color-black-16: rgb(var(--color-black) / 0.16);
+		--color-black-24: rgb(var(--color-black) / 0.24);
+		--color-black-40: rgb(var(--color-black) / 0.4);
+		--color-black-56: rgb(var(--color-black) / 0.56);
+		--color-black-64: rgb(var(--color-black) / 0.64);
+		--color-black-80: rgb(var(--color-black) / 0.8);
+		--color-black-92: rgb(var(--color-black) / 0.92);
+
+		/* White */
+		--color-white: 255 255 255;
+		--color-white-4: rgb(var(--color-white) / 0.04);
+		--color-white-8: rgb(var(--color-white) / 0.08);
+		--color-white-16: rgb(var(--color-white) / 0.16);
+		--color-white-24: rgb(var(--color-white) / 0.24);
+		--color-white-40: rgb(var(--color-white) / 0.4);
+		--color-white-56: rgb(var(--color-white) / 0.56);
+		--color-white-64: rgb(var(--color-white) / 0.64);
+		--color-white-80: rgb(var(--color-white) / 0.8);
+		--color-white-92: rgb(var(--color-white) / 0.92);
+
+		/* Spacing */
+		--spacing-xs: 4px;
+		--spacing-s: 8px;
+		--spacing-m: 12px;
+		--spacing-l: 16px;
+		--spacing-xl: 24px;
+		--spacing-2xl: 32px;
+		--spacing-3xl: 40px;
+		--spacing-4xl: 48px;
+		--spacing-5xl: 56px;
+
+		/* SEMANTICS: USE THIS IN COMPONENTS */
+
+		/* Content */
+		--content-primary: rgb(var(--color-black));
+		--content-secondary: var(--color-black-64);
+		--content-tertiary: var(--color-black-40);
+		--content-primary-inverse: rgb(var(--color-white));
+		--content-secondary-inverse: var(--color-grey-200);
+		--content-tertiary-inverse: var(--color-grey-400);
+		--content-disabled: var(--color-grey-400);
+		--content-brand: var(--color-brand-700-base);
+		--content-link: var(--color-brand-600);
+		--content-link-hover: var(--color-brand-700-base);
+		--content-link-pressed: var(--color-brand-800);
+		--content-notice: var(--color-yellow-500);
+		--content-notice-bold: var(--color-yellow-700);
+		--content-positive: var(--color-green-500);
+		--content-positive-bold: var(--color-green-700);
+		--content-negative: var(--color-red-500);
+		--content-negative-bold: var(--color-red-700);
+
+		/* Background */
+		--background-primary: rgb(var(--color-white));
+		--background-hover: var(--color-grey-50);
+		--background-pressed: var(--color-grey-100);
+		--background-selected: var(--color-brand-50);
+		--background-disabled: var(--color-grey-100);
+		--background-inverse: var(--color-grey-900);
+		--background-brand: var(--color-brand-700-base);
+		--background-brand-hover: var(--color-brand-600);
+		--background-brand-pressed: var(--color-brand-800);
+		--background-info: var(--color-blue-500);
+		--background-info-subtle: var(--color-blue-100);
+		--background-notice: var(--color-yellow-500);
+		--background-notice-subtle: var(--color-yellow-100);
+		--background-negative: var(--color-red-500);
+		--background-negative-subtle: var(--color-red-100);
+		--background-positive: var(--color-green-500);
+		--background-positive-subtle: var(--color-green-100);
+
+		/* Border */
+
+		--border-primary: var(--color-grey-400);
+		--border-secondary: var(--color-grey-300);
+		--border-tertiary: var(--color-grey-200);
+		--border-disabled: var(--color-grey-200);
+		--border-brand: var(--color-brand-700-base);
+		--border-inverse: rgb(var(--color-white));
+		--border-focus: var(--color-brand-300);
+		--border-info: var(--color-blue-500);
+		--border-notice: var(--color-yellow-500);
+		--border-negative: var(--color-red-500);
+		--border-success: var(--color-green-500);
+	}
 }
 
+/* app/globals.css */
+
 @layer base {
-  * {
-    @apply border-border;
-  }
+  /* 1. The Default Body Text */
   body {
-    @apply bg-background text-foreground;
+    @apply font-body text-m text-content-primary bg-surface-primary antialiased;
+  }
+
+  /* 2. Headings (Using Montserrat/Display) */
+  h1, h2, h3, h4, h5{
+    @apply font-display font-bold text-content-primary;
+    /* This ensures headings don't have weird default browser margins */
+    margin: 0; 
+  }
+
+  h1 {
+    @apply text-4xl; /* 61px size / 92px line-height */
+  }
+
+  h2 {
+    @apply text-3xl; /* 39px size / 59px line-height */
+  }
+
+  h3 {
+    @apply text-2xl;  /* 31px size / 47px line-height */
+  }
+
+  h4 {
+    @apply text-xl;   /* 25px size / 38px line-height */
+  }
+
+  h5{
+    @apply text-l;   /* 20px size / 30px line-height */
+  }
+
+
+  /* Body and Small Text */
+  p {
+    @apply text-m font-regular; /* 16px size / 24px line-height */
+  }
+
+  small, .footnote {
+    @apply text-s text-content-secondary; /* 13px size / 20px line-height */
+  }
+
+  /* Links */
+  a {
+    @apply text-content-link transition-colors duration-200;
+  }
+
+  a:hover {
+    @apply text-content-link-hover underline;
+  }
+
+  a:active {
+    @apply text-content-link-pressed;
   }
 }

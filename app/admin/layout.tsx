@@ -1,6 +1,6 @@
-import { DeployButton } from "@/components/deploy-button";
-import { AuthButton } from "@/components/auth/auth-button";
-import { ThemeSwitcher } from "@/components/theme-switcher";
+import { DeployButton } from "@/components/DeployButton";
+import { AuthButton } from "@/components/auth/AuthButton";
+import { ThemeSwitcher } from "@/components/ThemeSwitcher";
 import Link from "next/link";
 import { Suspense } from "react";
 

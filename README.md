@@ -1,109 +1,105 @@
-<a href="https://demo-nextjs-with-supabase.vercel.app/">
-  <img alt="Next.js and Supabase Starter Kit - the fastest way to build apps with Next.js and Supabase" src="https://demo-nextjs-with-supabase.vercel.app/opengraph-image.png">
-  <h1 align="center">Next.js and Supabase Starter Kit</h1>
-</a>
+# Gabai UPMin
 
-<p align="center">
- The fastest way to build apps with Next.js and Supabase
-</p>
+A campus navigation web app for UP Mindanao — map-based listings, admin management, and search powered by Supabase and Google Maps.
 
-<p align="center">
-  <a href="#features"><strong>Features</strong></a> ·
-  <a href="#demo"><strong>Demo</strong></a> ·
-  <a href="#deploy-to-vercel"><strong>Deploy to Vercel</strong></a> ·
-  <a href="#clone-and-run-locally"><strong>Clone and run locally</strong></a> ·
-  <a href="#feedback-and-issues"><strong>Feedback and issues</strong></a>
-  <a href="#more-supabase-examples"><strong>More Examples</strong></a>
-</p>
-<br/>
+## Project Specification
 
-## Features
+Functional requirements summary:
 
-- Works across the entire [Next.js](https://nextjs.org) stack
-  - App Router
-  - Pages Router
-  - Proxy
-  - Client
-  - Server
-  - It just works!
-- supabase-ssr. A package to configure Supabase Auth to use cookies
-- Password-based authentication block installed via the [Supabase UI Library](https://supabase.com/ui/docs/nextjs/password-based-auth)
-- Styling with [Tailwind CSS](https://tailwindcss.com)
-- Components with [shadcn/ui](https://ui.shadcn.com/)
-- Optional deployment with [Supabase Vercel Integration and Vercel deploy](#deploy-your-own)
-  - Environment variables automatically assigned to Vercel project
+- Core navigation and mapping via Google Maps markers and listings
+- Real-time geolocation with turn-by-turn directions
+- Listing details surfaced in a bottom sheet or sidebar
+- Category filters for campus locations
+- Listings sheet for text-based searching
+- Anonymous guest reviews with average rating and recent review limits
+- Admin login (UP email) and CRUD tools for listings
+- Public landing page with persistent visit counter
+- Mobile-first UI using UP Mindanao brand colors
+- First-time visitor redirect to a specialized landing page
+- Vercel deployment
 
-## Demo
+## Tech Stack
 
-You can view a fully working demo at [demo-nextjs-with-supabase.vercel.app](https://demo-nextjs-with-supabase.vercel.app/).
+- Next.js (App Router)
+- TypeScript
+- Supabase (Auth + Postgres)
+- Google Maps (`@googlemaps/js-api-loader`)
+- Tailwind CSS, shadcn/UI primitives
 
-## Deploy to Vercel
+## Quickstart
 
-Vercel deployment will guide you through creating a Supabase account and project.
+1. Clone the repo
 
-After installation of the Supabase integration, all relevant environment variables will be assigned to the project so the deployment is fully functioning.
+```bash
+git clone https://github.com/oreocapybara/gabai-upmin.git
+cd gabai-upmin
+npm install
+```
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fvercel%2Fnext.js%2Ftree%2Fcanary%2Fexamples%2Fwith-supabase&project-name=nextjs-with-supabase&repository-name=nextjs-with-supabase&demo-title=nextjs-with-supabase&demo-description=This+starter+configures+Supabase+Auth+to+use+cookies%2C+making+the+user%27s+session+available+throughout+the+entire+Next.js+app+-+Client+Components%2C+Server+Components%2C+Route+Handlers%2C+Server+Actions+and+Middleware.&demo-url=https%3A%2F%2Fdemo-nextjs-with-supabase.vercel.app%2F&external-id=https%3A%2F%2Fgithub.com%2Fvercel%2Fnext.js%2Ftree%2Fcanary%2Fexamples%2Fwith-supabase&demo-image=https%3A%2F%2Fdemo-nextjs-with-supabase.vercel.app%2Fopengraph-image.png)
+2. Create a `.env.local` at the project root with the following keys:
 
-The above will also clone the Starter kit to your GitHub, you can clone that locally and develop locally.
+```env
+NEXT_PUBLIC_SUPABASE_URL=your-supabase-url
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=your-publishable-key
+NEXT_PUBLIC_MAPS_API_KEY=your-google-maps-key
+NEXT_PUBLIC_MAP_ID=your-map-id
+```
 
-If you wish to just develop locally and not deploy to Vercel, [follow the steps below](#clone-and-run-locally).
+Where to find these values:
 
-## Clone and run locally
+- `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` are in Supabase Project Settings > API.
+- `NEXT_PUBLIC_MAPS_API_KEY` and `NEXT_PUBLIC_MAP_ID` are in your Google Cloud project (Maps JavaScript API enabled).
 
-1. You'll first need a Supabase project which can be made [via the Supabase dashboard](https://database.new)
+3. Start the dev server
 
-2. Create a Next.js app using the Supabase Starter template npx command
+```bash
+npm run dev
+# open http://localhost:3000
+```
 
-   ```bash
-   npx create-next-app --example with-supabase with-supabase-app
-   ```
+## Regenerating Supabase Types
 
-   ```bash
-   yarn create next-app --example with-supabase with-supabase-app
-   ```
+The canonical DB types file is `types/database.types.ts`. When you change the schema in Supabase, regenerate and commit the types:
 
-   ```bash
-   pnpm create next-app --example with-supabase with-supabase-app
-   ```
+```bash
+npm run update-types
+```
 
-3. Use `cd` to change into the app's directory
+Notes:
 
-   ```bash
-   cd with-supabase-app
-   ```
+- Keep `types/database.types.ts` committed in git — it's the source of truth for TypeScript types.
+- The `supabase/` folder is optional: keep it if you use the Supabase CLI frequently; otherwise you can remove it and re-run the CLI when needed. Keep any secret files out of source control.
 
-4. Rename `.env.example` to `.env.local` and update the following:
+## Scripts
 
-  ```env
-  NEXT_PUBLIC_SUPABASE_URL=[INSERT SUPABASE PROJECT URL]
-  NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=[INSERT SUPABASE PROJECT API PUBLISHABLE OR ANON KEY]
-  ```
-  > [!NOTE]
-  > This example uses `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, which refers to Supabase's new **publishable** key format.
-  > Both legacy **anon** keys and new **publishable** keys can be used with this variable name during the transition period. Supabase's dashboard may show `NEXT_PUBLIC_SUPABASE_ANON_KEY`; its value can be used in this example.
-  > See the [full announcement](https://github.com/orgs/supabase/discussions/29260) for more information.
+- `npm run dev` — Start development server
+- `npm run build` — Build for production
+- `npm run start` — Start production server
+- `npm run lint` — Run linter
+- `npm run update-types` — (optional) regenerate Supabase types. Use this to pull generated types when the database has been updated
 
-  Both `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` can be found in [your Supabase project's API settings](https://supabase.com/dashboard/project/_?showConnect=true)
+## Project Structure
 
-5. You can now run the Next.js local development server:
+- `app/` — Next.js routes and layouts
+- `components/` — UI components and domain components (map, auth, admin)
+- `services/` — Business logic and data access (follow `{feature}.service.ts` pattern)
+- `lib/` — Utilities and clients (Supabase client lives here)
+- `types/` — Generated Supabase types and shared type exports
+- `supabase/` — (optional) Supabase CLI state, migrations, and config
 
-   ```bash
-   npm run dev
-   ```
+## Implementation Notes
 
-   The starter kit should now be running on [localhost:3000](http://localhost:3000/).
+- Google Maps: the project uses `@googlemaps/js-api-loader`. The map loader is made idempotent and components must clean up overlays and listeners on unmount to avoid memory leaks.
+- Conventions & design: See [CONVENTIONS.md](CONVENTIONS.md) and [DESIGN_SYSTEM.md](DESIGN_SYSTEM.md) for coding and styling guidelines.
 
-6. This template comes with the default shadcn/ui style initialized. If you instead want other ui.shadcn styles, delete `components.json` and [re-install shadcn/ui](https://ui.shadcn.com/docs/installation/next)
+## Deployment
 
-> Check out [the docs for Local Development](https://supabase.com/docs/guides/getting-started/local-development) to also run Supabase locally.
+- TBD: Vercel for Next.js; set the same env vars in the deployment environment and configure your Supabase project.
 
-## Feedback and issues
+## Contributing
 
-Please file feedback and issues over on the [Supabase GitHub org](https://github.com/supabase/supabase/issues/new/choose).
-
-## More Supabase examples
-
-- [Next.js Subscription Payments Starter](https://github.com/vercel/nextjs-subscription-payments)
-- [Cookie-based Auth and the Next.js 13 App Router (free course)](https://youtube.com/playlist?list=PL5S4mPUpp4OtMhpnp93EFSo42iQ40XjbF)
-- [Supabase Auth and the Next.js App Router](https://github.com/supabase/supabase/tree/master/examples/auth/nextjs)
+- Read [CONVENTIONS.md](CONVENTIONS.md) before making changes.
+- Use conventional commit messages:
+  - Format: `type(scope): subject`
+  - Types: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `chore`, `ci`
+  - Example: `feat(auth): add social login`
