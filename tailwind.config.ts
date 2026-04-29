@@ -26,14 +26,14 @@ export default {
 			},
 
 			fontSize: { // [fontsize, lineheight]
-        xs: ["10px", "15px"],
-        s: ["13px", "20px"],
-        m: ["16px", "24px"],
-        l: ["20px", "30px"],
-        xl: ["25px", "38px"],
-        "2xl": ["31px", "47px"],
-        "3xl": ["39px", "59px"],
-        "4xl": ["61px", "92px"],
+				xs: ["10px", "15px"],
+				s: ["13px", "20px"],
+				m: ["16px", "24px"],
+				l: ["20px", "30px"],
+				xl: ["25px", "38px"],
+				"2xl": ["31px", "47px"],
+				"3xl": ["39px", "59px"],
+				"4xl": ["61px", "92px"],
       },
 
 			fontWeight: {
