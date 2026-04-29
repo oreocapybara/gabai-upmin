@@ -41,6 +41,12 @@ export type Listing = TableRow<"Listing">;
 export type ListingInsert = TableInsert<"Listing">;
 export type ListingUpdate = TableUpdate<"Listing">;
 
+export interface ListingWithCategory extends Listing {
+  category: {
+    category_name: string;
+  };
+}
+
 export type Feedback = TableRow<"Feedback">;
 export type FeedbackInsert = TableInsert<"Feedback">;
 export type FeedbackUpdate = TableUpdate<"Feedback">;

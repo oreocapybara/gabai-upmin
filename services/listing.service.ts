@@ -1,9 +1,9 @@
 // This file contails logic to handle everything related to the map pins and building details
 import { createClient } from "@/lib/supabase/client";
-import type { Listing } from "@/types";
+import type { ListingWithCategory } from "@/types";
 
 const supabase = createClient();
-const PAGE_SIZE = 50; // Adjust as needed
+const PAGE_SIZE = 25; // Adjust as needed
 
 export const listingService = {
 	// Fetch listings with pagination
@@ -15,13 +15,13 @@ export const listingService = {
         // because your createClient() used the <Database> type.
         const { data, error } = await supabase
             .from("Listing")
-            .select("*")
+            .select("*, category:category_id (category_name)")
             .range(start, end);
 
         if (error) throw error;
         
         // Return type is inferred, but casting ensures your UI gets the clean Listing type
-        return (data ?? []) as Listing[];
+        return (data ?? []) as ListingWithCategory[];
 	},
 
 	// Fetch listing by specific category with pagination
@@ -31,12 +31,12 @@ export const listingService = {
 
         const { data, error } = await supabase
             .from("Listing")
-            .select("*")
+            .select("*, category:category_id (category_name)")
             .eq("category_id", categoryId)
             .range(start, end);
 
         if (error) throw error;
-        return (data ?? []) as Listing[];
+        return (data ?? []) as ListingWithCategory[];
     },
 };
 
