@@ -2,6 +2,7 @@
 
 import { importLibrary } from "@googlemaps/js-api-loader";
 import { useEffect, useRef } from "react";
+import { createRoot } from "react-dom/client";
 import type { ListingWithCategory } from "@/types";
 import { getPinStyle } from "./MapPin";
 
@@ -29,11 +30,23 @@ export const MapMarker = ({ map, listing }: MapMarkerProps) => {
 			const name = listing.category?.category_name;
 			const style = getPinStyle(name);
 
+			let glyphElement: HTMLDivElement | undefined;
+			if (style.glyph) {
+				glyphElement = document.createElement("div");
+				const root = createRoot(glyphElement);
+				root.render(
+					<style.glyph
+						style={{ color: style.glyphColor, fontSize: "16px" }}
+					/>,
+				);
+			}
+
 			const pin = new PinElement({
 				background: style.background,
 				glyphColor: style.glyphColor,
 				borderColor: style.borderColor,
-				glyphSrc: style.glyph,
+				glyph: glyphElement,
+				glyphSrc: style.glyphSrc,
 			});
 
 			// Create the actual Marker
