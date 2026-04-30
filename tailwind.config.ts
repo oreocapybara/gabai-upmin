@@ -142,7 +142,7 @@ export default {
 					info: "var(--border-info)",
 					notice: "var(--border-notice)",
 					negative: "var(--border-negative)",
-					success: "var(--border-success)",
+					positive: "var(--border-positive)",
 				},
 
 				// Primitives for Black/White opacities
