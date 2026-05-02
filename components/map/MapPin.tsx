@@ -1,80 +1,96 @@
-import Canteen from '@mui/icons-material/Fastfood';
-import Clinic from '@mui/icons-material/MedicalServicesRounded';
-import Dormitory from '@mui/icons-material/Bed';
-import Laundromat from '@mui/icons-material/LocalLaundryServiceRounded';
-import Market from '@mui/icons-material/LocalGroceryStoreRounded';
-import School from '@mui/icons-material/SchoolRounded';
-import Toda from '@mui/icons-material/DirectionsCarFilledRounded';
+import { cn } from "@/lib/utils";
+import React from "react";
+
+import Canteen from "@mui/icons-material/FastfoodRounded";
+import Clinic from "@mui/icons-material/MedicalServicesRounded";
+import Dormitory from "@mui/icons-material/Bed";
+import Laundromat from "@mui/icons-material/LocalLaundryServiceRounded";
+import Market from "@mui/icons-material/LocalGroceryStoreRounded";
+import School from "@mui/icons-material/SchoolRounded";
+import Toda from "@mui/icons-material/DirectionsCarFilledRounded";
 
 type PinStyle = {
-	background: string;
-	glyphColor: string;
-	borderColor: string;
-	glyph?: React.ElementType;
-	glyphSrc?: string;
+	color: string;
+	Icon: React.ElementType;
 };
 
-export const getPinStyle = (category: string): PinStyle => {
+// background color
+const baseColor = "bg-content-brand";
+
+const getPinStyle = (category: string): PinStyle => {
 	// Define which icon goes with which category
 
-	
 	//TODO: Style properly
+	//Based on category apply these icons
 	switch (category) {
 		case "canteen-eatery":
 			return {
-				background: "#1E40AF", // Blue
-				glyphColor: "#FFFFFF",
-				borderColor: "#1E3A8A",
-				glyph: Canteen,
+				color: baseColor, // Blue
+				Icon: Canteen,
 			};
 		case "clinic-hospital":
 			return {
-				background: "#1E40AF",
-				glyphColor: "#FFFFFF",
-				borderColor: "#1E3A8A",
-				glyph: Clinic,
+				color: baseColor,
+				Icon: Clinic,
 			};
 		case "dormitory":
 			return {
-				background: "#1E40AF",
-				glyphColor: "#FFFFFF",
-				borderColor: "#1E3A8A",
-				glyph: Dormitory,
+				color: baseColor,
+				Icon: Dormitory,
 			};
 		case "laundromat":
 			return {
-				background: "#1E40AF",
-				glyphColor: "#FFFFFF",
-				borderColor: "#1E3A8A",
-				glyph: Laundromat,
+				color: baseColor,
+				Icon: Laundromat,
 			};
 		case "market":
 			return {
-				background: "#1E40AF",
-				glyphColor: "#FFFFFF",
-				borderColor: "#1E3A8A",
-				glyph: Market,
+				color: baseColor,
+				Icon: Market,
 			};
 		case "school-building":
 			return {
-				background: "#1E40AF",
-				glyphColor: "#FFFFFF",
-				borderColor: "#1E3A8A",
-				glyph: School,
+				color: baseColor,
+				Icon: School,
 			};
 		case "toda":
 			return {
-				background: "#1E40AF",
-				glyphColor: "#FFFFFF",
-				borderColor: "#1E3A8A",
-				glyph: Toda,
+				color: baseColor,
+				Icon: Toda,
 			};
 		default:
 			return {
-				background: "#1E40AF",
-				glyphColor: "#FFFFFF",
-				borderColor: "#1E3A8A",
-				glyph: School,
+				color: baseColor,
+				Icon: School,
 			};
 	}
 };
+
+interface MapPinProps {
+	category: string;
+	isSelected?: boolean;
+}
+
+const MapPin = ({ category, isSelected = false }: MapPinProps) => {
+	const { color, Icon } = getPinStyle(category);
+	const backgroundColor = isSelected ? "bg-content-positive-bold" : color;
+
+	return (
+		<div
+			className={cn(
+				"flex justify-center items-center border-[1px]  border-content-tertiary p-2 rounded-t-full rounded-bl-full rounded-br-[2700px] rotate-45 cursor-pointer  text-content-brand ",
+				backgroundColor,
+				"transition-colors duration-200",
+			)}
+		>
+			<Icon
+				className={cn(
+					"-rotate-45 w-7  text-content-inverse-primary ",
+					"transition-colors duration-300",
+				)}
+			/>
+		</div>
+	);
+};
+
+export default MapPin;

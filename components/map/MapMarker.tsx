@@ -1,76 +1,16 @@
 "use client";
 
-import { importLibrary } from "@googlemaps/js-api-loader";
-import { useEffect, useRef } from "react";
-import { createRoot } from "react-dom/client";
 import type { ListingWithCategory } from "@/types";
-import { getPinStyle } from "./MapPin";
+import { useMapMarker } from "@/hooks/useMapMarker";
 
-interface MapMarkerProps {
+export interface MapMarkerProps {
 	map: google.maps.Map;
 	listing: ListingWithCategory;
+	isSelected?: boolean;
+	onSelect?: (listing: ListingWithCategory) => void;
 }
 
-export const MapMarker = ({ map, listing }: MapMarkerProps) => {
-	const markerRef = useRef<google.maps.marker.AdvancedMarkerElement | null>(
-		null,
-	);
-
-	useEffect(() => {
-		// If there is no map return
-		if (!map) return;
-
-		const initMarker = async () => {
-			// Load Marker Library
-			const { AdvancedMarkerElement, PinElement } = (await importLibrary(
-				"marker",
-			)) as google.maps.MarkerLibrary;
-
-			// Access listings and retrieve category
-			const name = listing.category?.category_name;
-			const style = getPinStyle(name);
-
-			let glyphElement: HTMLDivElement | undefined;
-			if (style.glyph) {
-				glyphElement = document.createElement("div");
-				const root = createRoot(glyphElement);
-				root.render(
-					<style.glyph
-						style={{ color: style.glyphColor, fontSize: "16px" }}
-					/>,
-				);
-			}
-
-			const pin = new PinElement({
-				background: style.background,
-				glyphColor: style.glyphColor,
-				borderColor: style.borderColor,
-				glyph: glyphElement,
-				glyphSrc: style.glyphSrc,
-			});
-
-			// Create the actual Marker
-			const marker = new AdvancedMarkerElement({ 
-				map,
-				position: {
-					lat: listing.coord_latitude,
-					lng: listing.coord_longitude,
-				},
-				title: listing.listing_name,
-				content: pin as unknown as HTMLElement,
-			});
-		};
-
-		initMarker();
-
-		// Cleanup to prevent memory leaks
-		return () => {
-			if (markerRef.current) {
-				markerRef.current.map = null;
-				markerRef.current = null;
-			}
-		};
-	}, [map, listing]);
-
+export const MapMarker = (props: MapMarkerProps) => {
+	useMapMarker(props);
 	return null;
 };

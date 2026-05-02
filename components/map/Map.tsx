@@ -1,71 +1,36 @@
 "use client";
-
-import { importLibrary, setOptions } from "@googlemaps/js-api-loader";
-import { useEffect, useRef, useState } from "react";
-import { listingService } from "@/services/listing.service";
-import type { ListingWithCategory } from "@/types";
+import { useRef, useState, useCallback } from "react";
+import { useMap } from "@/hooks/useMap";
 import { MapMarker } from "./MapMarker";
+import { ListingWithCategory } from "../../types/index";
 
-export default function Map() {
-	const mapRef = useRef<HTMLDivElement>(null);
-	const mapInstanceRef = useRef<google.maps.Map | null>(null);
-	const [map, setMap] = useState<google.maps.Map | null>(null);
-	const [listings, setListings] = useState<ListingWithCategory[]>([]);
+interface MapProps {
+	initialListings: ListingWithCategory[];
+}
 
-	useEffect(() => {
-		let isMounted = true;
+export default function Map({ initialListings }: MapProps) {
+	const mapWrapperRef = useRef<HTMLDivElement>(null); // The wrapper around the map
+	const map = useMap(mapWrapperRef);
+	const [selectedListingId, setSelectedListingId] = useState<
+		ListingWithCategory["listing_id"] | null
+	>(null);
 
-		const initMap = async (): Promise<void> => {
-			// Set Loader Options
-			setOptions({
-				key: process.env.NEXT_PUBLIC_MAPS_API_KEY,
-				v: "weekly",
-			});
-
-			//Load Maps Library
-			const { Map } = (await importLibrary("maps")) as google.maps.MapsLibrary;
-
-			//set Map options
-			const mapOptions = {
-				center: {
-					// UP Mindanao Oblation Coord
-					lat: 7.08577271110286,
-					lng: 125.4853479996858,
-				},
-				zoom: 16,
-				mapId: process.env.NEXT_PUBLIC_MAP_ID,
-			};
-
-			//Declare the map
-			const mapInstance = new Map(mapRef.current as HTMLDivElement, mapOptions);
-			mapInstanceRef.current = mapInstance;
-			if (isMounted) setMap(mapInstance);
-
-			// Fetch Listings from Database
-			const data = await listingService.getAllListings(0);
-			if (isMounted) setListings(data);
-		};
-
-		initMap();
-
-		// Cleanup function to prevent memory leaks
-		return () => {
-			isMounted = false;
-			if (mapInstanceRef.current) {
-				// Clear all listeners and references
-				google.maps.event.clearInstanceListeners(mapInstanceRef.current);
-				mapInstanceRef.current = null;
-			}
-			setMap(null);
-		};
+	const handleSelect = useCallback((listing: ListingWithCategory) => {
+		setSelectedListingId(listing.listing_id);
 	}, []);
 
 	return (
 		<>
-			<div className="w-screen" ref={mapRef} />
+			<div className="w-screen" ref={mapWrapperRef} />
 			{map &&
-				listings.map((item) => (
-					<MapMarker key={item.listing_id} map={map} listing={item} />
+				initialListings.map((item) => (
+					<MapMarker
+						key={item.listing_id}
+						map={map}
+						listing={item}
+						isSelected={selectedListingId === item.listing_id}
+						onSelect={handleSelect}
+					/>
 				))}
 		</>
 	);
