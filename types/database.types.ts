@@ -18,19 +18,16 @@ export type Database = {
         Row: {
           admin_id: number
           email: string
-          password: string
           username: string
         }
         Insert: {
           admin_id?: number
-          email?: string
-          password?: string
+          email: string
           username: string
         }
         Update: {
           admin_id?: number
           email?: string
-          password?: string
           username?: string
         }
         Relationships: []
@@ -170,10 +167,11 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      hook_block_non_admins_by_email: { Args: { event: Json }; Returns: Json }
+      is_admin_email: { Args: { p_email: string }; Returns: boolean }
     }
     Enums: {
-      status: "CREATED_LISTINGUPDATED_LISTING" | "DELETED_LISTING"
+      status: "CREATED_LISTING" | "DELETED_LISTING" | "UPDATED_LISTING"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -301,7 +299,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      status: ["CREATED_LISTINGUPDATED_LISTING", "DELETED_LISTING"],
+      status: ["CREATED_LISTING", "DELETED_LISTING", "UPDATED_LISTING"],
     },
   },
 } as const

@@ -1,72 +1,212 @@
 "use client";
-
-import { importLibrary, setOptions } from "@googlemaps/js-api-loader";
-import { useEffect, useRef, useState } from "react";
-import { listingService } from "@/services/listing.service";
+import { useRef, useState, useCallback, useMemo, useEffect } from "react";
+import dynamic from "next/dynamic";
 import type { ListingWithCategory } from "@/types";
 import { MapMarker } from "./MapMarker";
+import { useMap } from "@/hooks/map/useMap";
+import { useGeolocation } from "@/hooks/map/useGeolocation";
+import { useDirections } from "@/hooks/map/useDirections";
+import { useClusterer } from "@/hooks/map/useClusterer";
+import { UserMarker } from "./UserMarker";
+import { Button } from "@/components/ui/Button";
+import { NotificationBanner } from "@/components/ui/NotificationBanner";
+import { cn } from "@/lib/utils";
+const MyLocationRounded = dynamic(
+	() => import("@mui/icons-material/MyLocationRounded"),
+	{ ssr: false },
+);
 
-export default function Map() {
-	const mapRef = useRef<HTMLDivElement>(null);
-	const mapInstanceRef = useRef<google.maps.Map | null>(null);
-	const [map, setMap] = useState<google.maps.Map | null>(null);
-	const [listings, setListings] = useState<ListingWithCategory[]>([]);
+interface MapProps {
+	initialListings: ListingWithCategory[];
+}
+
+type ListingId = ListingWithCategory["listing_id"];
+
+export default function Map({ initialListings }: MapProps) {
+	const [selectedListingId, setSelectedListingId] = useState<ListingId | null>(
+		null,
+	);
+	const [isHydrated, setIsHydrated] = useState(false);
+	const [showMapError, setShowMapError] = useState(false);
+	const [showGeoError, setShowGeoError] = useState(false);
+	const [showGeoSupportError, setShowGeoSupportError] = useState(false);
+
+	const containerRef = useRef<HTMLDivElement>(null);
+	const { map, mapError } = useMap(containerRef);
+
+	const { position, error: geoError, isSupported } = useGeolocation();
 
 	useEffect(() => {
-		let isMounted = true;
-
-		const initMap = async (): Promise<void> => {
-			// Set Loader Options
-			setOptions({
-				key: process.env.NEXT_PUBLIC_MAPS_API_KEY,
-				v: "weekly",
-			});
-
-			//Load Maps Library
-			const { Map } = (await importLibrary("maps")) as google.maps.MapsLibrary;
-
-			//set Map options
-			const mapOptions = {
-				center: {
-					// UP Mindanao Oblation Coord
-					lat: 7.08577271110286,
-					lng: 125.4853479996858,
-				},
-				zoom: 16,
-				mapId: process.env.NEXT_PUBLIC_MAP_ID,
-			};
-
-			//Declare the map
-			const mapInstance = new Map(mapRef.current as HTMLDivElement, mapOptions);
-			mapInstanceRef.current = mapInstance;
-			if (isMounted) setMap(mapInstance);
-
-			// Fetch Listings from Database
-			const data = await listingService.getAllListings(0);
-			if (isMounted) setListings(data);
-		};
-
-		initMap();
-
-		// Cleanup function to prevent memory leaks
-		return () => {
-			isMounted = false;
-			if (mapInstanceRef.current) {
-				// Clear all listeners and references
-				google.maps.event.clearInstanceListeners(mapInstanceRef.current);
-				mapInstanceRef.current = null;
-			}
-			setMap(null);
-		};
+		setIsHydrated(true);
 	}, []);
+
+	useEffect(() => {
+		setShowMapError(Boolean(mapError));
+	}, [mapError]);
+
+	useEffect(() => {
+		setShowGeoError(Boolean(geoError));
+	}, [geoError]);
+
+	useEffect(() => {
+		setShowGeoSupportError(!isSupported);
+	}, [isSupported]);
+
+	const selectedListing = useMemo(
+		() =>
+			initialListings.find((l) => l.listing_id === selectedListingId) ?? null,
+		[initialListings, selectedListingId],
+	);
+
+	// Derive destination from selected listing — null clears the route
+	const destination = selectedListing
+		? {
+				lat: selectedListing.coord_latitude,
+				lng: selectedListing.coord_longitude,
+			}
+		: null;
+
+	const isRouteActive = Boolean(destination && position);
+	const isLocateDisabled = !isHydrated || !position;
+
+	// call and render the directions
+	useDirections({ map, userPosition: position, destination });
+
+	const handleSelect = useCallback((listing: ListingWithCategory) => {
+		setSelectedListingId(
+			(prev) => (prev === listing.listing_id ? null : listing.listing_id), // toggle off on re-click
+		);
+	}, []);
+
+	const handleLocate = useCallback(() => {
+		if (!map || !position) return;
+
+		const bounds = map.getBounds();
+		const isInView = bounds?.contains(position) ?? false;
+
+		if (!isInView) {
+			animatePanTo(map, position, { durationMs: 800 });
+			const zoom = map.getZoom();
+			if (zoom !== undefined && zoom < 17) {
+				setTimeout(() => {
+					map.setZoom(17);
+				}, 800);
+			}
+			return;
+		}
+
+		animatePanTo(map, position, { durationMs: 500 });
+	}, [map, position]);
+
+	const clusterer = useClusterer(map);
 
 	return (
 		<>
-			<div className="w-screen" ref={mapRef} />
+			<div className="w-screen" ref={containerRef} />
+
+			{(showMapError || showGeoError || showGeoSupportError) && (
+				<div className="fixed top-l right-l z-50 flex flex-col gap-s">
+					{mapError && showMapError && (
+						<NotificationBanner
+							variant="error"
+							isFloating={false}
+							title="Map error"
+							autoHideMs={5000}
+							onDismiss={() => setShowMapError(false)}
+						>
+							Failed to load map: {mapError.message}
+						</NotificationBanner>
+					)}
+					{!isSupported && showGeoSupportError && (
+						<NotificationBanner
+							variant="warning"
+							isFloating={false}
+							title="Geolocation"
+							autoHideMs={5000}
+							onDismiss={() => setShowGeoSupportError(false)}
+						>
+							Geolocation is not supported on this device.
+						</NotificationBanner>
+					)}
+					{geoError && showGeoError && (
+						<NotificationBanner
+							variant="error"
+							isFloating={false}
+							title="Location error"
+							autoHideMs={5000}
+							onDismiss={() => setShowGeoError(false)}
+						>
+							{geoError.message}
+						</NotificationBanner>
+					)}
+				</div>
+			)}
+
+			<UserMarker map={map} position={position} />
+
+			<Button
+				type="button"
+				variant="secondary"
+				size="icon"
+				className="absolute bottom-4 right-4 z-10 h-10 w-10 shadow-md"
+				onClick={handleLocate}
+				disabled={isLocateDisabled}
+				suppressHydrationWarning
+				aria-label="Locate current position"
+			>
+				<MyLocationRounded className={cn("w-9 h-9")} />
+			</Button>
+
 			{map &&
-				listings.map((item) => (
-					<MapMarker key={item.listing_id} map={map} listing={item} />
+				clusterer &&
+				initialListings.map((item) => (
+					<MapMarker
+						key={item.listing_id}
+						map={map}
+						listing={item}
+						isSelected={selectedListingId === item.listing_id}
+						onSelect={handleSelect}
+						clusterer={clusterer}
+						isHidden={isRouteActive && selectedListingId !== item.listing_id}
+					/>
 				))}
 		</>
 	);
+}
+
+function animatePanTo(
+	map: google.maps.Map,
+	target: google.maps.LatLngLiteral,
+	opts?: { durationMs?: number },
+) {
+	const duration = opts?.durationMs ?? 700;
+	const start = map.getCenter();
+	if (!start) {
+		map.setCenter(target);
+		return;
+	}
+
+	const startLat = start.lat();
+	const startLng = start.lng();
+	const deltaLat = target.lat - startLat;
+	const deltaLng = target.lng - startLng;
+
+	const startTime = performance.now();
+	const easeInOut = (t: number) =>
+		t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+
+	const step = (now: number) => {
+		const elapsed = now - startTime;
+		const t = Math.min(1, elapsed / duration);
+		const eased = easeInOut(t);
+
+		map.setCenter({
+			lat: startLat + deltaLat * eased,
+			lng: startLng + deltaLng * eased,
+		});
+
+		if (t < 1) requestAnimationFrame(step);
+	};
+
+	requestAnimationFrame(step);
 }
