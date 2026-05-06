@@ -76,19 +76,22 @@ const MapPin = ({ category, isSelected = false }: MapPinProps) => {
 	const backgroundColor = isSelected ? "bg-content-positive-bold" : color;
 
 	return (
-		<div
+		<div // Marker body
 			className={cn(
-				"flex justify-center items-center border-[1px]  border-content-tertiary p-2 rounded-t-full rounded-bl-full rounded-br-[2700px] rotate-45 cursor-pointer  text-content-brand ",
-				backgroundColor,
+				"flex justify-center items-center bg-surface-primary border-[1px]  border-stroke-secondary p-1 rounded-t-full rounded-bl-full rounded-br-[2700px] rotate-45 cursor-pointer  text-content-brand shadow",
 				"transition-colors duration-200",
 			)}
 		>
-			<Icon
-				className={cn(
-					"-rotate-45 w-7  text-content-inverse-primary ",
-					"transition-colors duration-300",
-				)}
-			/>
+			<div className={cn( 
+				"bg-surface-brand", backgroundColor, "transition-colors duration-200 p-1 rounded-full",
+			)}>
+				<Icon
+					className={cn(
+						"-rotate-45 p-[0.5px] text-content-inverse-primary ",
+						"transition-colors duration-300",
+					)}
+				/>
+			</div>
 		</div>
 	);
 };

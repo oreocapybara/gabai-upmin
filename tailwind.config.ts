@@ -1,4 +1,4 @@
-/** * GABAI DESIGN SYSTEM 
+/** * GABAI DESIGN SYSTEM
  * * Hierarchy:
  * - Content: Text & Icons (text-content-*)
  * - Surface: Backgrounds & Layers (bg-surface-*)
@@ -15,6 +15,7 @@ export default {
 	content: [
 		"./pages/**/*.{js,ts,jsx,tsx,mdx}",
 		"./components/**/*.{js,ts,jsx,tsx,mdx}",
+		"./hooks/**/*.{js,ts,jsx,tsx,mdx}",
 		"./app/**/*.{js,ts,jsx,tsx,mdx}",
 		"./src/**/*.{js,ts,jsx,tsx,mdx}",
 	],
@@ -25,7 +26,8 @@ export default {
 				body: ["var(--font-inter)", "sans-serif"],
 			},
 
-			fontSize: { // [fontsize, lineheight]
+			fontSize: {
+				// [fontsize, lineheight]
 				xs: ["10px", "15px"],
 				s: ["13px", "20px"],
 				m: ["16px", "24px"],
@@ -34,7 +36,7 @@ export default {
 				"2xl": ["31px", "47px"],
 				"3xl": ["39px", "59px"],
 				"4xl": ["61px", "92px"],
-      },
+			},
 
 			fontWeight: {
 				regular: "400",
@@ -42,7 +44,7 @@ export default {
 				bold: "700",
 			},
 
-      // the fonstise pairing will mostly handle the work for fonts this one is still implemented just in case
+			// the fonstise pairing will mostly handle the work for fonts this one is still implemented just in case
 			lineHeight: {
 				xs: "15px",
 				s: "20px",
@@ -68,7 +70,7 @@ export default {
 
 			//COLOR SYSTEM
 			colors: {
-        // TEXT & ICONS (Replaces "content")
+				// TEXT & ICONS (Replaces "content")
 				content: {
 					primary: "var(--content-primary)",
 					secondary: "var(--content-secondary)",
@@ -98,8 +100,8 @@ export default {
 						bold: "var(--content-negative-bold)",
 					},
 				},
-        
-        // BACKGROUNDS & LAYERS (Reads as: bg-surface-primary)
+
+				// BACKGROUNDS & LAYERS (Reads as: bg-surface-primary)
 				surface: {
 					primary: "var(--background-primary)",
 					hover: "var(--background-hover)",
@@ -130,7 +132,7 @@ export default {
 					},
 				},
 
-        // BORDERS & LINES (Reads as: border-stroke-primary)
+				// BORDERS & LINES (Reads as: border-stroke-primary)
 				stroke: {
 					primary: "var(--border-primary)",
 					secondary: "var(--border-secondary)",
