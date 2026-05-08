@@ -124,6 +124,7 @@ export type Database = {
           closing_hours: string | null
           coord_latitude: number
           coord_longitude: number
+          description: string | null
           image_url: string | null
           listing_id: number
           listing_name: string
@@ -135,6 +136,7 @@ export type Database = {
           closing_hours?: string | null
           coord_latitude: number
           coord_longitude: number
+          description?: string | null
           image_url?: string | null
           listing_id?: number
           listing_name: string
@@ -146,6 +148,7 @@ export type Database = {
           closing_hours?: string | null
           coord_latitude?: number
           coord_longitude?: number
+          description?: string | null
           image_url?: string | null
           listing_id?: number
           listing_name?: string
@@ -169,6 +172,8 @@ export type Database = {
     Functions: {
       hook_block_non_admins_by_email: { Args: { event: Json }; Returns: Json }
       is_admin_email: { Args: { p_email: string }; Returns: boolean }
+      is_admin_or_up: { Args: never; Returns: boolean }
+      is_up_admin: { Args: never; Returns: boolean }
     }
     Enums: {
       status: "CREATED_LISTING" | "DELETED_LISTING" | "UPDATED_LISTING"
