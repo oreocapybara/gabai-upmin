@@ -121,11 +121,8 @@ export default function Map({
 	});
 
 	return (
-		<div className="relative h-svh w-screen pt-16">
-			<div
-				className="h-[calc(100svh-4rem)] w-full relative z-0"
-				ref={containerRef}
-			/>
+		<div className="relative w-screen mt-16 h-[calc(100svh-4rem)]">
+			<div className="h-full w-full relative z-0" ref={containerRef} />
 
 			{(showMapError || showGeoError || showGeoSupportError) && (
 				<div className="fixed top-20 right-4 z-[2200] flex flex-col gap-s">

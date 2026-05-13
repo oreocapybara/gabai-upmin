@@ -91,7 +91,7 @@ export function MainDrawer({
 		[],
 	);
 
-	// ── Drawer drag hook 
+	// ── Drawer drag hook
 	const {
 		snapState,
 		snapTo,
@@ -272,6 +272,9 @@ export function MainDrawer({
 				hideBackdrop
 				ModalProps={{
 					keepMounted: true,
+					disableAutoFocus: true,
+					disableEnforceFocus: true,
+					disableRestoreFocus: true,
 					style: { pointerEvents: "none" },
 				}}
 				sx={{

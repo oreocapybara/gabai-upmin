@@ -47,9 +47,11 @@ export default function ListingList({
 				const isDirectionsActive = directionsListingId === listing.listing_id;
 
 				const card = (
-					<div className="animate-[fadeInUp_240ms_ease-out]">
+					<div
+						className="animate-[fadeInUp_240ms_ease-out]"
+						key={listing.listing_id}
+					>
 						<ListingCard
-							key={listing.listing_id}
 							listing={listing}
 							onDetails={onDetails}
 							onDirections={onDirections}
