@@ -2,6 +2,54 @@ import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 
 export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs));
+	return twMerge(clsx(inputs));
 }
 
+export const formatCategoryName = (name: string) => {
+	const normalized = name.toLowerCase();
+	if (normalized === "canteen-eatery") return "Canteen / Eatery";
+	if (normalized === "clinic-hospital") return "Clinic / Hospital";
+
+	return name
+		.replace(/[-_]/g, " ")
+		.split(/\s+/)
+		.filter(Boolean)
+		.map((word) => word[0]?.toUpperCase() + word.slice(1))
+		.join(" ");
+};
+
+export function isListingOpen(
+	opening: string | null,
+	closing: string | null,
+): boolean {
+	if (!opening || !closing) return false;
+	const now = new Date();
+	const current = now.getHours() * 60 + now.getMinutes();
+	const [openH, openM] = opening.split(":").map(Number);
+	const [closeH, closeM] = closing.split(":").map(Number);
+	const open = openH * 60 + openM;
+	const close = closeH * 60 + closeM;
+	return close < open
+		? current >= open || current < close
+		: current >= open && current < close;
+}
+
+// ─── Star rating ──────────────────────────────────────────────────────────────
+
+export interface StarBreakdown {
+	full: number;
+	hasHalf: boolean;
+	empty: number;
+}
+
+/**
+ * Breaks a decimal rating (e.g. 3.5) into integer star counts safe for
+ * rendering with individual icon components. Rounds to nearest 0.5.
+ */
+export function resolveStarBreakdown(rating: number): StarBreakdown {
+	const rounded = Math.round(rating * 2) / 2;
+	const full = Math.floor(rounded);
+	const hasHalf = rounded - full === 0.5;
+	const empty = 5 - full - (hasHalf ? 1 : 0);
+	return { full, hasHalf, empty };
+}

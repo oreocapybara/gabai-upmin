@@ -1,254 +1,420 @@
 "use client";
 
-import Image from 'next/image';
+import { useEffect, useState, useCallback, useRef } from "react";
+import { Button } from "@/components/ui/Button";
+import { Box, Drawer } from "@mui/material";
+import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
+import { ChevronLeft } from "lucide-react";
 
-import { useEffect, useState, } from 'react';
-import { Global } from '@emotion/react';
+import { ListingDetails } from "@/components/listing/ListingDetails";
+import { ReviewSection } from "@/components/listing/ReviewSection";
+import ListingList from "@/components/listing/ListingList";
+import DropdownMenu from "@/components/ui/DropdownMenu";
+import { NotificationBanner } from "@/components/ui/NotificationBanner";
 
-import { createClient } from '@/lib/supabase/client';
+// Moved: hooks/drawer → hooks/common (not drawer-specific)
+import { useMounted } from "@/hooks/common/useMounted";
+import {
+	DRAWER_SNAP_DURATION_MS,
+	DRAWER_SPRING,
+	type SnapPoint,
+	useDraggableDrawer,
+} from "@/hooks/drawer/useDraggableDrawer";
 
-import { Card, CardContent } from "@/components/ui/Card";
-import { Button } from '@/components/ui/Button';
+import type { Category, ListingWithCategory } from "@/types";
 
-import { Box, SwipeableDrawer } from '@mui/material';
-import HighlightOffIcon from '@mui/icons-material/HighlightOff';
-import DirectionsIcon from '@mui/icons-material/Directions';
-import KeyboardReturnOutlinedIcon from '@mui/icons-material/KeyboardReturnOutlined';
+// ─── Types ────────────────────────────────────────────────────────────────────
 
-import { ListingDetails } from '@/components/drawer/ListingDetails';
-import { ReviewSection } from '@/components/drawer/ReviewSection';
+type DrawerView = "list" | "details" | "reviews";
 
-interface Listing {
-    listing_id: number;
-    listing_name: string;
-    image_url: string;
-    opening_hours: string | null;
-    closing_hours: string | null;
-    category: {
-        category_name: string;
-    };
-    price: string;
-    description: string;
-}
+// ─── Constants ────────────────────────────────────────────────────────────────
 
-const PULLER_HEIGHT = 86; // The height of the "tab" visible at the bottom
+const PULLER_HEIGHT = 86;
+const SNAP_POINTS: SnapPoint[] = [0, 30, 60, 90];
 
-type DrawerView = 'list' | 'details' | 'reviews';
+// ─── Component ────────────────────────────────────────────────────────────────
 
-export function MainDrawer() {
-    const [view, setView] = useState<DrawerView>('list');
-    const [activeListing, setActiveListing] = useState<Listing | null>(null);
-    const [isOpen, setIsOpen] = useState(false);
-    const [listings, setListings] = useState<Listing[]>([]);
-    const [pendingRating, setPendingRating] = useState<number>(0);
+export function MainDrawer({
+	listings,
+	categories,
+	onDirections,
+	selectedListing,
+	onSelectListing,
+	directionsListing,
+	onSnapChange,
+	searchQuery,
+	selectionSource,
+}: {
+	listings: ListingWithCategory[];
+	categories: Category[];
+	onDirections?: (listing: ListingWithCategory) => void;
+	selectedListing?: ListingWithCategory | null;
+	onSelectListing?: (listing: ListingWithCategory) => void;
+	directionsListing?: ListingWithCategory | null;
+	onSnapChange?: (snap: SnapPoint) => void;
+	searchQuery?: string;
+	selectionSource?: "pin" | "list" | null;
+}) {
+	const mounted = useMounted();
+	const isLoading = false;
 
-    useEffect(() => {
-        const fetchListings = async () => {
-            const supabase = createClient();
-                
-            const { data, error } = await supabase
-                .from('Listing')
-                .select('listing_id, listing_name, image_url, opening_hours, closing_hours, Category(category_name)');
+	const [view, setView] = useState<DrawerView>("list");
+	const [transitionView, setTransitionView] = useState<DrawerView>("list");
+	const [isTransitioning, setIsTransitioning] = useState(false);
+	const [activeListing, setActiveListing] =
+		useState<ListingWithCategory | null>(null);
+	const [selectedCategoryId, setSelectedCategoryId] = useState<string>("");
+	const [pendingRating, setPendingRating] = useState(0);
+	const [reviewToast, setReviewToast] = useState<{
+		variant: "success" | "error";
+		title: string;
+		message: string;
+	} | null>(null);
 
-            if (error) {
-                console.error('Error fetching listings:', error);
-            } else if (data) {
-                const formattedListings: Listing[] = data.map((item: any) => ({
-                    listing_id: item.listing_id,
-                    listing_name: item.listing_name,
-                    image_url: item.image_url ?? '',
-                    opening_hours: item.opening_hours,
-                    closing_hours: item.closing_hours,
-                    category: {
-                        category_name: item.Category?.category_name || 'Uncategorized',
-                    },
-                    price: item.price,
-                    description: item.description
-                }));
+	const resetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+	const lastExternalListingId = useRef<string | number | null>(null);
 
-                setListings(formattedListings);
-            }
-        };
-        fetchListings();
-    }, []);
+	// ── Snap-zero callback ─────────────────────────────────────────────────────
 
-    const handleOpenDetails = (listing: Listing) => {
-        setActiveListing(listing);
-        setView('details');
-    };
+	const handleSnapZero = useCallback(() => {
+		// Delay view reset so the close animation completes first
+		resetTimerRef.current = setTimeout(() => {
+			setView("list");
+			setActiveListing(null);
+		}, DRAWER_SNAP_DURATION_MS);
+	}, []);
 
-    const handleGoBack = () => {
-        if (view === 'reviews') {
-            setView('details');
-        } else {
-            setView('list');
-            setActiveListing(null);
-        }
-    };
+	useEffect(
+		() => () => {
+			if (resetTimerRef.current) clearTimeout(resetTimerRef.current);
+		},
+		[],
+	);
 
-    const isListingOpen = (opening: string | null, closing: string | null) => {
-        if (!opening || !closing) return false;
-        const now = new Date();
-        const currentMinutes = now.getHours() * 60 + now.getMinutes();
-        const [openH, openM] = opening.split(':').map(Number);
-        const [closeH, closeM] = closing.split(':').map(Number);
-        const openMinutes = openH * 60 + openM;
-        const closeMinutes = closeH * 60 + closeM;
-        if (closeMinutes < openMinutes) {
-            // Overnight hours
-            return currentMinutes >= openMinutes || currentMinutes < closeMinutes;
-        } else {
-            return currentMinutes >= openMinutes && currentMinutes < closeMinutes;
-        }
-    };
+	// ── Drawer drag hook 
+	const {
+		snapState,
+		snapTo,
+		snapToPx,
+		onPointerDown,
+		onPointerMove,
+		onPointerUp,
+	} = useDraggableDrawer({
+		onSnapZero: handleSnapZero,
+		pullerHeight: PULLER_HEIGHT,
+		snapPoints: SNAP_POINTS,
+		dragThresholdPx: 32,
+	});
 
-    const toggleDrawer = (newOpen: boolean) => (event: React.KeyboardEvent | React.MouseEvent) => {
-        if (event && event.type === 'keydown' && 
-           ((event as React.KeyboardEvent).key === 'Tab' || (event as React.KeyboardEvent).key === 'Shift')) {
-            return;
-        }
-        setIsOpen(newOpen);
-        if (!newOpen) handleGoBack(); // Reset view on close
-    };
+	useEffect(() => {
+		onSnapChange?.(snapState);
+	}, [onSnapChange, snapState]);
 
-    return (
-        <Box>
-            <Global
-                styles={{
-                    '.MuiDrawer-root > .MuiPaper-root': {
-                        height: `calc(50% - ${PULLER_HEIGHT}px)`,
-                        overflow: 'visible', 
-                        zIndex: 2000, 
-                    },
-                }}
-            />
+	// ── Navigation handlers ────────────────────────────────────────────────────
 
-            <SwipeableDrawer
-                anchor="bottom"
-                open={isOpen}
-                onClose={toggleDrawer(false)}
-                onOpen={toggleDrawer(true)}
-                swipeAreaWidth={PULLER_HEIGHT}
-                hideBackdrop={true}
-                ModalProps={{ keepMounted: true }}
-            >
-                {/* --- PULLER TAB (Header) --- */}
-                <Box 
-                    className="absolute left-0 right-0 flex flex-col items-center bg-surface-primary border-t-2 border-l-2 border-r-2 border-stroke-secondary rounded-t-3xl"
-                    style={{ 
-                        top: -PULLER_HEIGHT, 
-                        height: PULLER_HEIGHT,
-                        visibility: 'visible',
-                    }}
-                >
-                    <Box className="w-10 h-1.5 rounded-full bg-stroke-secondary mt-4 mb-1" /> 
-                    
-                    <Box className="flex w-full justify-between items-center px-4">
-                        <Button variant="mono" size="icon" className="text-content-tertiary">
-                            PLACEHOLDER
-                        </Button>
+	const handleOpenDetails = useCallback(
+		(listing: ListingWithCategory) => {
+			setActiveListing(listing);
+			setTransitionView("details");
+			setIsTransitioning(true);
+			window.setTimeout(() => {
+				setView("details");
+				setIsTransitioning(false);
+			}, 160);
+			onSelectListing?.(listing);
+		},
+		[onSelectListing],
+	);
 
-                        <Button 
-                            variant="mono" 
-                            size="icon"
-                            className="flex items-center justify-center [&_svg]:!size-8" 
-                            onClick={(e) => {
-                                if (view === 'list') {
-                                    toggleDrawer(false)(e); 
-                                } else {
-                                    handleGoBack();
-                                }
-                            }}
-                        >
-                            {view !== 'list' ? (
-                                <KeyboardReturnOutlinedIcon className="text-content-tertiary"/>
-                            ) : (
-                                <HighlightOffIcon className="text-content-tertiary"/>
-                            )}
-                        </Button>
-                    </Box>
-                </Box>
+	const handleDirections = useCallback(
+		(listing: ListingWithCategory) => {
+			onDirections?.(listing);
+			snapTo(0); // close the drawe state during directions
+		},
+		[onDirections, snapTo],
+	);
 
-                {/* --- CONTENT BODY --- */}
-                <Box 
-                    className="bg-surface-primary px-4 pb-8 overflow-y-auto h-full border-l-2 border-r-2 border-stroke-secondary"
-                    style={{ minHeight: '100px' }} // Ensures the box doesn't collapse
-                >
-                    <div className="mt-4">
-                        {view === 'list' && (
-                            <div className="space-y-3">
-                                {listings.length > 0 ? (
-                                    listings.map((listing, index) => (
-                                        <Card key={index} className="border border-stroke-secondary shadow-none bg-surface-secondary">
-                                            <CardContent className="flex items-center gap-4 p-4 h-full">
-                                                <div className="flex-shrink-0">
-                                                    <Image 
-                                                        src='/logo.svg' 
-                                                        alt={listing.listing_name} 
-                                                        width={80}    
-                                                        height={80} 
-                                                        className="object-contain" 
-                                                    />
-                                                </div>
+	useEffect(() => {
+		if (!selectedListing) return;
+		if (lastExternalListingId.current === selectedListing.listing_id) return;
+		lastExternalListingId.current = selectedListing.listing_id;
+		setActiveListing(selectedListing);
+		setTransitionView("details");
+		setIsTransitioning(true);
+		window.setTimeout(() => {
+			setView("details");
+			setIsTransitioning(false);
+		}, 160);
+		snapTo(selectionSource === "pin" ? 60 : 0);
+	}, [selectedListing, selectionSource, snapTo]);
 
-                                                <div className="flex-grow min-w-0 text-left">
-                                                    <h3 className="font-bold text-content-brand text-sm">
-                                                        {listing.listing_name}
-                                                    </h3>
-                                                    <p className="text-content-tertiary text-xs mb-3">
-                                                        {listing.category.category_name} • 
-                                                        <span className={isListingOpen(listing.opening_hours, listing.closing_hours) ? "text-green-600 font-medium" : "text-red-600"}>
-                                                            {isListingOpen(listing.opening_hours, listing.closing_hours) ? ' Open' : ' Closed'}
-                                                        </span>
-                                                    </p>
-                                                    <div className="flex flex-row gap-2">
-                                                        <Button 
-                                                        variant="mono" 
-                                                        size="sm" 
-                                                        className="h-8 px-3 text-xs"
-                                                        onClick={() => handleOpenDetails(listing)}> 
-                                                        Details 
-                                                        </Button>
+	useEffect(() => {
+		if (!selectedListing) {
+			lastExternalListingId.current = null;
+		}
+	}, [selectedListing]);
 
-                                                        <Button variant="default" size="default" className="!w-auto h-8 text-xs" leadingIcon={<DirectionsIcon />}>
-                                                        Directions
-                                                        </Button>
-                                                    </div>
-                                                </div>
-                                            </CardContent>
-                                        </Card>
-                                    ))
-                                ) : (
-                                    /* For debugging if the array is empty */
-                                    <div className="text-center py-10 text-xs text-content-tertiary uppercase tracking-widest">
-                                        Loading listings...
-                                    </div>
-                                )}
-                            </div>
-                        )}
+	useEffect(() => {
+		if (!searchQuery) return;
+		setTransitionView("list");
+		setIsTransitioning(true);
+		window.setTimeout(() => {
+			setView("list");
+			setIsTransitioning(false);
+		}, 160);
+		setActiveListing(null);
+		setSelectedCategoryId("");
+		snapTo(60);
+	}, [searchQuery, snapTo]);
 
-                        {view === 'details' && activeListing && (
-                            <ListingDetails 
-                                listing={activeListing} 
-                                onBack={handleGoBack}
-                                onSeeReviews={() => setView('reviews')}
-                                onRate={(rating) => {
-                                    setPendingRating(rating);
-                                    setView('reviews');
-                                }} 
-                            />
-                        )}
+	const handleGoBack = useCallback(() => {
+		if (view === "reviews") {
+			setTransitionView("details");
+			setIsTransitioning(true);
+			window.setTimeout(() => {
+				setView("details");
+				setIsTransitioning(false);
+			}, 160);
+		} else {
+			setTransitionView("list");
+			setIsTransitioning(true);
+			window.setTimeout(() => {
+				setView("list");
+				setIsTransitioning(false);
+			}, 160);
+			setActiveListing(null);
+		}
+	}, [view]);
 
-                        {view === 'reviews' && activeListing && (
-                            <ReviewSection 
-                                listing={activeListing} 
-                                onBack={() => setView('details')} 
-                                initialRating={pendingRating}
-                            />
-                        )}
-                    </div>
-                </Box>
-            </SwipeableDrawer>
-        </Box>
-    );
+	const handleReviewSuccess = useCallback(() => {
+		setTransitionView("details");
+		setIsTransitioning(true);
+		window.setTimeout(() => {
+			setView("details");
+			setIsTransitioning(false);
+		}, 160);
+		setPendingRating(0);
+		setReviewToast({
+			variant: "success",
+			title: "Review submitted",
+			message: "Thanks for sharing your feedback.",
+		});
+	}, []);
+
+	const handleReviewError = useCallback((message: string) => {
+		setReviewToast({
+			variant: "error",
+			title: "Review failed",
+			message,
+		});
+	}, []);
+
+	const handleActionButton = useCallback(() => {
+		if (view === "list") snapTo(0);
+		else handleGoBack();
+	}, [view, snapTo, handleGoBack]);
+
+	const handleCategoryChange = useCallback(
+		(categoryId: string) => {
+			setSelectedCategoryId(categoryId);
+			setTransitionView("list");
+			setIsTransitioning(true);
+			window.setTimeout(() => {
+				setView("list");
+				setIsTransitioning(false);
+			}, 160);
+			if (snapState === 0) {
+				snapTo(30);
+			}
+		},
+		[snapState, snapTo],
+	);
+
+	// ── Derived state ──────────────────────────────────────────────────────────
+
+	const selectedCategoryName = selectedCategoryId
+		? categories.find((c) => String(c.category_id) === selectedCategoryId)
+				?.category_name
+		: undefined;
+
+	const filteredListings = selectedCategoryName
+		? listings.filter((l) => l.category.category_name === selectedCategoryName)
+		: listings;
+
+	const directionsListingId = directionsListing?.listing_id ?? null;
+
+	// ── SSR guard ─────────────────────────────────────────────────────────────
+
+	if (!mounted) {
+		return (
+			<div
+				suppressHydrationWarning
+				style={{
+					position: "fixed",
+					bottom: 0,
+					left: 0,
+					right: 0,
+					height: PULLER_HEIGHT,
+					pointerEvents: "none",
+				}}
+			/>
+		);
+	}
+
+	// ── Render ────────────────────────────────────────────────────────────────
+
+	return (
+		<Box suppressHydrationWarning sx={{ pointerEvents: "none" }}>
+			<Drawer
+				anchor="bottom"
+				open={mounted}
+				onClose={() => snapTo(0)}
+				hideBackdrop
+				ModalProps={{
+					keepMounted: true,
+					style: { pointerEvents: "none" },
+				}}
+				sx={{
+					"& .MuiDrawer-paper": {
+						overflow: "visible",
+						zIndex: 2000,
+						height: snapToPx(snapState),
+						transition: `height ${DRAWER_SNAP_DURATION_MS}ms ${DRAWER_SPRING}`,
+						boxShadow: snapState === 0 ? "none" : undefined,
+						pointerEvents: snapState === 0 ? "none" : "auto",
+					},
+				}}
+			>
+				{/* ── Puller tab ── */}
+				<Box
+					className="absolute left-0 right-0 flex flex-col items-center bg-surface-primary border-t-2 border-l-2 border-r-2 border-stroke-secondary rounded-t-3xl select-none"
+					style={{
+						top: -PULLER_HEIGHT,
+						height: PULLER_HEIGHT,
+						visibility: "visible",
+						pointerEvents: "auto",
+						touchAction: "none",
+						cursor: "grab",
+					}}
+					onPointerDown={onPointerDown}
+					onPointerMove={onPointerMove}
+					onPointerUp={onPointerUp}
+					onPointerCancel={onPointerUp}
+				>
+					<Box
+						data-drag-handle
+						className="w-16 h-1 rounded-full bg-stroke-tertiary mt-4 mb-3 pointer-events-none"
+					/>
+
+					<Box
+						className="flex w-full justify-between items-center px-4"
+						onPointerDown={(e) => e.stopPropagation()}
+					>
+						<DropdownMenu
+							categories={categories}
+							menuPlacement={snapState === 0 ? "top" : "bottom"}
+							onCategoryChange={handleCategoryChange}
+						/>
+						<Button
+							variant="mono"
+							size="icon"
+							className="flex items-center justify-center rounded-full border border-stroke-secondary bg-surface-primary shadow-sm hover:bg-surface-hover active:bg-surface-pressed transition-colors [&_svg]:!size-5"
+							onClick={handleActionButton}
+						>
+							{view !== "list" ? (
+								<ChevronLeft className="text-content-secondary" />
+							) : (
+								<CloseRoundedIcon className="text-content-secondary" />
+							)}
+						</Button>
+					</Box>
+				</Box>
+
+				{/* ── Scrollable content ── */}
+				<Box
+					className="bg-surface-primary px-4 pb-4 overflow-y-auto h-full border-l-2 border-r-2 border-stroke-secondary"
+					style={{ minHeight: 100, pointerEvents: "auto" }}
+				>
+					<div
+						className={
+							"transition-all duration-200 ease-out " +
+							(isTransitioning
+								? "opacity-0 translate-y-2"
+								: "opacity-100 translate-y-0")
+						}
+					>
+						{view === "list" && (
+							<ListingList
+								listings={filteredListings}
+								isLoading={isLoading}
+								onDetails={handleOpenDetails}
+								onDirections={handleDirections}
+								directionsListingId={directionsListingId}
+							/>
+						)}
+
+						{view === "details" && activeListing && (
+							<ListingDetails
+								listing={activeListing}
+								onSeeReviews={() => {
+									setTransitionView("reviews");
+									setIsTransitioning(true);
+									window.setTimeout(() => {
+										setView("reviews");
+										setIsTransitioning(false);
+									}, 160);
+								}}
+								onDirections={handleDirections}
+								isDirectionsActive={
+									directionsListingId === activeListing.listing_id
+								}
+								onRate={(rating) => {
+									setPendingRating(rating);
+									setTransitionView("reviews");
+									setIsTransitioning(true);
+									window.setTimeout(() => {
+										setView("reviews");
+										setIsTransitioning(false);
+									}, 160);
+								}}
+							/>
+						)}
+
+						{view === "reviews" && activeListing && (
+							<ReviewSection
+								listing={activeListing}
+								onDetails={() => {
+									setTransitionView("details");
+									setIsTransitioning(true);
+									window.setTimeout(() => {
+										setView("details");
+										setIsTransitioning(false);
+									}, 160);
+								}}
+								onDirections={handleDirections}
+								initialRating={pendingRating}
+								onSubmitSuccess={handleReviewSuccess}
+								onSubmitError={handleReviewError}
+								isDirectionsActive={
+									directionsListingId === activeListing.listing_id
+								}
+							/>
+						)}
+					</div>
+				</Box>
+			</Drawer>
+
+			{reviewToast && (
+				<NotificationBanner
+					variant={reviewToast.variant}
+					title={reviewToast.title}
+					className="fixed top-20 right-4 z-[2200]"
+					autoHideMs={3500}
+					onDismiss={() => setReviewToast(null)}
+				>
+					{reviewToast.message}
+				</NotificationBanner>
+			)}
+		</Box>
+	);
 }

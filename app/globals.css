@@ -169,61 +169,78 @@
 	}
 }
 
+@layer utilities {
+	@keyframes fadeInUp {
+		0% {
+			opacity: 0;
+			transform: translateY(6px);
+		}
+		100% {
+			opacity: 1;
+			transform: translateY(0);
+		}
+	}
+}
+
 /* app/globals.css */
 
 @layer base {
-  /* 1. The Default Body Text */
-  body {
-    @apply font-body text-m text-content-primary bg-surface-primary antialiased;
-  }
+	/* 1. The Default Body Text */
+	body {
+		@apply font-body text-m text-content-primary bg-surface-primary antialiased;
+	}
 
-  /* 2. Headings (Using Montserrat/Display) */
-  h1, h2, h3, h4, h5{
-    @apply font-display font-bold text-content-primary;
-    /* This ensures headings don't have weird default browser margins */
-    margin: 0; 
-  }
+	/* 2. Headings (Using Montserrat/Display) */
+	h1,
+	h2,
+	h3,
+	h4,
+	h5 {
+		@apply font-display font-bold text-content-primary;
+		/* This ensures headings don't have weird default browser margins */
+		margin: 0;
+	}
 
-  h1 {
-    @apply text-4xl; /* 61px size / 92px line-height */
-  }
+	h1 {
+		@apply text-4xl; /* 61px size / 92px line-height */
+	}
 
-  h2 {
-    @apply text-3xl; /* 39px size / 59px line-height */
-  }
+	h2 {
+		@apply text-3xl; /* 39px size / 59px line-height */
+	}
 
-  h3 {
-    @apply text-2xl;  /* 31px size / 47px line-height */
-  }
+	h3 {
+		@apply text-2xl; /* 31px size / 47px line-height */
+	}
 
-  h4 {
-    @apply text-xl;   /* 25px size / 38px line-height */
-  }
+	h4 {
+		@apply text-xl; /* 25px size / 38px line-height */
+	}
 
-  h5{
-    @apply text-l;   /* 20px size / 30px line-height */
-  }
+	h5 {
+		@apply text-l; /* 20px size / 30px line-height */
+	}
 
+	/* Body and Small Text */
+	p {
+		@apply text-m font-regular; /* 16px size / 24px line-height */
+	}
 
-  /* Body and Small Text */
-  p {
-    @apply text-m font-regular; /* 16px size / 24px line-height */
-  }
+	small,
+	.footnote {
+		@apply text-s text-content-secondary; /* 13px size / 20px line-height */
+	}
 
-  small, .footnote {
-    @apply text-s text-content-secondary; /* 13px size / 20px line-height */
-  }
+	/* Links */
+	a {
+		@apply text-content-link transition-colors duration-200;
+	}
 
-  /* Links */
-  a {
-    @apply text-content-link transition-colors duration-200;
-  }
+	a:hover {
+		@apply text-content-link-hover underline;
+	}
 
-  a:hover {
-    @apply text-content-link-hover underline;
-  }
-
-  a:active {
-    @apply text-content-link-pressed;
-  }
+	a:active {
+		@apply text-content-link-pressed;
+	}
 }
