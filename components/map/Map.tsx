@@ -18,14 +18,21 @@ const MyLocationRounded = dynamic(
 
 interface MapProps {
 	initialListings: ListingWithCategory[];
+	directionsListing?: ListingWithCategory | null;
+	selectedListingId?: ListingId | null;
+	onSelectListing?: (listing: ListingWithCategory) => void;
+	drawerSnapState?: number;
 }
 
 type ListingId = ListingWithCategory["listing_id"];
 
-export default function Map({ initialListings }: MapProps) {
-	const [selectedListingId, setSelectedListingId] = useState<ListingId | null>(
-		null,
-	);
+export default function Map({
+	initialListings,
+	directionsListing,
+	selectedListingId,
+	onSelectListing,
+	drawerSnapState = 0,
+}: MapProps) {
 	const [isHydrated, setIsHydrated] = useState(false);
 	const [showMapError, setShowMapError] = useState(false);
 	const [showGeoError, setShowGeoError] = useState(false);
@@ -58,25 +65,24 @@ export default function Map({ initialListings }: MapProps) {
 		[initialListings, selectedListingId],
 	);
 
-	// Derive destination from selected listing — null clears the route
-	const destination = selectedListing
+	// Derive destination from directions listing — null clears the route
+	const destination = directionsListing
 		? {
-				lat: selectedListing.coord_latitude,
-				lng: selectedListing.coord_longitude,
+				lat: directionsListing.coord_latitude,
+				lng: directionsListing.coord_longitude,
 			}
 		: null;
 
 	const isRouteActive = Boolean(destination && position);
 	const isLocateDisabled = !isHydrated || !position;
+	const isDrawerOpen = drawerSnapState > 0;
 
-	// call and render the directions
-	useDirections({ map, userPosition: position, destination });
-
-	const handleSelect = useCallback((listing: ListingWithCategory) => {
-		setSelectedListingId(
-			(prev) => (prev === listing.listing_id ? null : listing.listing_id), // toggle off on re-click
-		);
-	}, []);
+	const handleSelect = useCallback(
+		(listing: ListingWithCategory) => {
+			onSelectListing?.(listing);
+		},
+		[onSelectListing],
+	);
 
 	const handleLocate = useCallback(() => {
 		if (!map || !position) return;
@@ -98,14 +104,28 @@ export default function Map({ initialListings }: MapProps) {
 		animatePanTo(map, position, { durationMs: 500 });
 	}, [map, position]);
 
-	const clusterer = useClusterer(map);
+	const clusterer = useClusterer(map, !isRouteActive);
+
+	const markersToRender = useMemo(() => {
+		if (isRouteActive && directionsListing) {
+			return [directionsListing];
+		}
+		return initialListings;
+	}, [directionsListing, initialListings, isRouteActive]);
+
+	// Use directions hook to render route when destination and user position are available
+	useDirections({
+		map,
+		userPosition: position,
+		destination,
+	});
 
 	return (
-		<>
-			<div className="w-screen" ref={containerRef} />
+		<div className="relative w-screen mt-16 h-[calc(100svh-4rem)]">
+			<div className="h-full w-full relative z-0" ref={containerRef} />
 
 			{(showMapError || showGeoError || showGeoSupportError) && (
-				<div className="fixed top-l right-l z-50 flex flex-col gap-s">
+				<div className="fixed top-20 right-4 z-[2200] flex flex-col gap-s">
 					{mapError && showMapError && (
 						<NotificationBanner
 							variant="error"
@@ -148,7 +168,12 @@ export default function Map({ initialListings }: MapProps) {
 				type="button"
 				variant="secondary"
 				size="icon"
-				className="absolute bottom-4 right-4 z-10 h-10 w-10 shadow-md"
+				className={cn(
+					"absolute right-4 z-50 h-10 w-10 shadow-md transition-opacity duration-200",
+					isDrawerOpen
+						? "opacity-0 pointer-events-none bottom-4"
+						: "opacity-100 bottom-[102px]",
+				)}
 				onClick={handleLocate}
 				disabled={isLocateDisabled}
 				suppressHydrationWarning
@@ -158,19 +183,17 @@ export default function Map({ initialListings }: MapProps) {
 			</Button>
 
 			{map &&
-				clusterer &&
-				initialListings.map((item) => (
+				markersToRender.map((item) => (
 					<MapMarker
 						key={item.listing_id}
 						map={map}
 						listing={item}
 						isSelected={selectedListingId === item.listing_id}
 						onSelect={handleSelect}
-						clusterer={clusterer}
-						isHidden={isRouteActive && selectedListingId !== item.listing_id}
+						clusterer={isRouteActive ? null : clusterer}
 					/>
 				))}
-		</>
+		</div>
 	);
 }
 

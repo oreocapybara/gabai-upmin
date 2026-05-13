@@ -17,7 +17,7 @@ type PinStyle = {
 // background color
 const baseColor = "bg-content-brand";
 
-const getPinStyle = (category: string): PinStyle => {
+export const getPinStyle = (category: string): PinStyle => {
 	// Define which icon goes with which category
 
 	//TODO: Style properly
