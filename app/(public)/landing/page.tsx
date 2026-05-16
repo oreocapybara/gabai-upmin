@@ -87,7 +87,7 @@ export default function Page() {
 	};
 
 	return (
-		<main className="flex min-h-svh flex-col bg-surface-brand">
+		<main className="w-screen flex min-h-svh flex-col bg-surface-brand">
 			{/* ── Hero ── brand background extends from the Navbar */}
 			<div className="flex flex-1 flex-col items-center justify-center gap-m px-xl pb-2xl pt-16">
 				<div className="overflow-hidden rounded-full shadow-xl ring-4 ring-white-40">
