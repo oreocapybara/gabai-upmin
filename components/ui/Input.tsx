@@ -11,6 +11,7 @@ type InputProps = React.ComponentProps<"input"> & {
 	label?: string;
 	id?: string;
 	multiline?: boolean;
+	wrapperClassName?: string;
 };
 
 type TextareaProps = React.ComponentProps<"textarea"> & {
@@ -21,6 +22,7 @@ type TextareaProps = React.ComponentProps<"textarea"> & {
 	label?: string;
 	id?: string;
 	multiline: true;
+	wrapperClassName?: string;
 };
 
 const Input = React.forwardRef<
@@ -37,6 +39,7 @@ const Input = React.forwardRef<
 			trailing,
 			helpText,
 			multiline = false,
+			wrapperClassName,
 			...props
 		},
 		ref,
@@ -74,6 +77,7 @@ const Input = React.forwardRef<
 			<div
 				className={cn(
 					"flex flex-col items-start relative w-full min-w-0 sm:min-w-80",
+					wrapperClassName,
 				)}
 			>
 				{/* Input Wrapper */}

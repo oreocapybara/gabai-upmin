@@ -64,12 +64,14 @@ export function useNavSearch(): UseNavSearchReturn {
 	}, [searchParams]);
 
 	const pushSearch = (value: string) => {
-		const params = new URLSearchParams(searchParams.toString());
 		const trimmed = value.trim();
+		const params = new URLSearchParams();
 		if (trimmed) params.set("q", trimmed);
-		else params.delete("q");
 		const query = params.toString();
-		router.replace(query ? `${pathname}?${query}` : pathname);
+		const url = query ? `/?${query}` : "/";
+		// Use replace when already on home to avoid polluting history with each keystroke
+		if (pathname === "/") router.replace(url);
+		else router.push(url);
 	};
 
 	const handleSearchChange = (value: string) => {

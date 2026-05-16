@@ -34,6 +34,17 @@ export function isListingOpen(
 		: current >= open && current < close;
 }
 
+export function formatPriceRange(
+	min: number | null,
+	max: number | null,
+): string {
+	if (min === 0 && max === null) return "Free";
+	if (min !== null && max !== null) return `₱${min} – ₱${max}`;
+	if (min !== null) return `₱${min}`;
+	if (max !== null) return `up to ₱${max}`;
+	return "";
+}
+
 // ─── Star rating ──────────────────────────────────────────────────────────────
 
 export interface StarBreakdown {

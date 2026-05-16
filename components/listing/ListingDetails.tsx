@@ -13,6 +13,7 @@ import { useFeedbacks } from "@/hooks/listing/useFeedback";
 import {
 	cn,
 	formatCategoryName,
+	formatPriceRange,
 	isListingOpen,
 	resolveStarBreakdown,
 } from "@/lib/utils";
@@ -102,12 +103,13 @@ export function ListingDetails({
 	return (
 		<div className="flex flex-col">
 			{/* ── Hero Image ─────────────────────────────────────────────────────── */}
-			<div className="relative w-full h-44 bg-surface-secondary overflow-hidden rounded-xl mb-4">
+			<div className="relative aspect-square w-full bg-surface-secondary overflow-hidden rounded-xl mb-4">
 				<Image
 					src={listing.image_url || "/logo.svg"}
 					alt={listing.listing_name}
 					fill
 					priority
+					sizes="(max-width: 640px) 100vw, 640px"
 					className="object-cover"
 				/>
 				{/* Open / Closed badge over the image */}
@@ -148,7 +150,9 @@ export function ListingDetails({
 					<MetaPill
 						label={formatCategoryName(listing.category.category_name)}
 					/>
-					{listing.price && <MetaPill label={`₱ ${listing.price}`} />}
+					{(listing.price_min != null || listing.price_max != null) && (
+						<MetaPill label={formatPriceRange(listing.price_min, listing.price_max)} />
+					)}
 				</div>
 			</div>
 

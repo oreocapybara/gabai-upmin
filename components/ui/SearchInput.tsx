@@ -1,6 +1,6 @@
 "use client";
 
-import SearchIcon from "@mui/icons-material/Search";
+import { Search } from "lucide-react";
 
 type ListingOption = {
 	listing_id: string | number;
@@ -50,7 +50,7 @@ export function SearchInput({
 				aria-label="Submit search"
 				className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-brand-700 focus:text-brand-700 transition-colors"
 			>
-				<SearchIcon sx={{ fontSize: 20 }} />
+				<Search size={18} />
 			</button>
 
 			{showSuggestions && suggestions.length > 0 && (

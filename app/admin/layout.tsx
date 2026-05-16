@@ -1,28 +1,48 @@
-import Link from "next/link";
 import { Suspense } from "react";
+import { ToastProvider } from "@/components/ui/ToastProvider";
+import { AdminDashboardSkeleton } from "@/components/admin/AdminDashboardSkeleton";
+import { redirect } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
+
+async function requireAdmin() {
+	const supabase = await createClient();
+	const {
+		data: { user },
+	} = await supabase.auth.getUser();
+
+	if (!user) {
+		redirect("/auth/login");
+	}
+
+	const role = user.app_metadata?.role ?? user.user_metadata?.role;
+	if (role === "admin") return;
+
+	if (user.email) {
+		const { data, error } = await supabase.rpc("is_admin_email", {
+			p_email: user.email,
+		});
+		if (!error && data) return;
+	}
+
+	redirect("/admin/unauthorized");
+}
+
+async function AdminGate({ children }: { children: React.ReactNode }) {
+	await requireAdmin();
+	return children;
+}
 
 export default function AdminLayout({
-  children,
+	children,
 }: {
-  children: React.ReactNode;
+	children: React.ReactNode;
 }) {
-  return (
-    <main className="min-h-screen flex flex-col">
-      <nav className="w-full flex justify-center border-b h-16">
-        <div className="w-full max-w-7xl flex justify-between items-center p-3 px-5">
-          <div className="flex gap-5 items-center font-semibold">
-            <Link href="/admin">UPMin Admin</Link>
-          </div>
-          <div>
-            <Link href="/login" className="text-sm hover:underline">
-              Sign out
-            </Link>
-          </div>
-        </div>
-      </nav>
-      <div className="flex-1">
-        {children}
-      </div>
-    </main>
-  );
+	return (
+		<>
+			<ToastProvider />
+			<Suspense fallback={<AdminDashboardSkeleton />}>
+				<AdminGate>{children}</AdminGate>
+			</Suspense>
+		</>
+	);
 }

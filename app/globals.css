@@ -171,15 +171,29 @@
 
 @layer utilities {
 	@keyframes fadeInUp {
-		0% {
-			opacity: 0;
-			transform: translateY(6px);
-		}
-		100% {
-			opacity: 1;
-			transform: translateY(0);
-		}
+		0%   { opacity: 0; transform: translateY(6px); }
+		100% { opacity: 1; transform: translateY(0); }
 	}
+
+	/* Admin dashboard — row / card entrance */
+	@keyframes adminRowIn {
+		0%   { opacity: 0; transform: translateY(8px); }
+		100% { opacity: 1; transform: translateY(0); }
+	}
+
+	/* Delete modal — backdrop */
+	@keyframes backdropIn  { from { opacity: 0; } to { opacity: 1; } }
+	@keyframes backdropOut { from { opacity: 1; } to { opacity: 0; } }
+
+	/* Delete modal — card */
+	@keyframes modalIn  { from { opacity: 0; transform: scale(0.94) translateY(6px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+	@keyframes modalOut { from { opacity: 1; transform: scale(1) translateY(0); } to { opacity: 0; transform: scale(0.94) translateY(6px); } }
+
+	.admin-row-enter { animation: adminRowIn 0.28s ease-out both; }
+	.modal-backdrop-enter { animation: backdropIn  0.2s ease-out both; }
+	.modal-backdrop-exit  { animation: backdropOut 0.18s ease-in  both; }
+	.modal-card-enter { animation: modalIn  0.22s cubic-bezier(0.32, 0.72, 0, 1) both; }
+	.modal-card-exit  { animation: modalOut 0.16s ease-in both; }
 }
 
 /* app/globals.css */

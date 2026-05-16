@@ -26,6 +26,10 @@ export function MapWithDrawer({
 	);
 
 	const searchQuery = (searchParams.get("q") ?? "").trim().toLowerCase();
+	const categoryParam = searchParams.get("category") ?? "";
+	const initialCategoryId = categoryParam
+		? String(categories.find((c) => c.category_name === categoryParam)?.category_id ?? "")
+		: "";
 	const filteredListings = useMemo(() => {
 		if (!searchQuery) return initialListings;
 		const matches = initialListings.filter((listing) => {
@@ -101,6 +105,7 @@ export function MapWithDrawer({
 				onSnapChange={setDrawerSnapState}
 				searchQuery={searchQuery}
 				selectionSource={selectionSource}
+				initialCategoryId={initialCategoryId}
 			/>
 		</>
 	);

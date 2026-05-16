@@ -149,7 +149,7 @@ export default {
 
 				// Primitives for Black/White opacities
 				black: {
-					DEFAULT: "var(--color-black)",
+					DEFAULT: "rgb(var(--color-black))",
 					4: "var(--color-black-4)",
 					8: "var(--color-black-8)",
 					16: "var(--color-black-16)",
@@ -161,7 +161,7 @@ export default {
 					92: "var(--color-black-92)",
 				},
 				white: {
-					DEFAULT: "var(--color-white)",
+					DEFAULT: "rgb(var(--color-white))",
 					4: "var(--color-white-4)",
 					8: "var(--color-white-8)",
 					16: "var(--color-white-16)",

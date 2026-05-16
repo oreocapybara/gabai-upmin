@@ -1,95 +1,118 @@
-'use client';
+"use client";
 
+import React from "react";
 import { toast } from "sonner";
-import CheckCircleIcon from '@mui/icons-material/CheckCircle';
-import CancelIcon from '@mui/icons-material/Cancel';
-import ReportProblemIcon from '@mui/icons-material/ReportProblem';
-import DeleteForeverIcon from '@mui/icons-material/DeleteForever';
-import InfoIcon from '@mui/icons-material/Info';
+import CheckCircleRoundedIcon from "@mui/icons-material/CheckCircleRounded";
+import CancelRoundedIcon from "@mui/icons-material/CancelRounded";
+import WarningAmberRoundedIcon from "@mui/icons-material/WarningAmberRounded";
+import InfoRoundedIcon from "@mui/icons-material/InfoRounded";
+import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
+
+// ─── Config ───────────────────────────────────────────────────────────────────
+
+type ToastVariant = "success" | "error" | "warning" | "info";
+
+const VARIANT = {
+	success: {
+		Icon: CheckCircleRoundedIcon,
+		iconClass: "text-content-positive",
+		accentClass: "bg-content-positive",
+	},
+	error: {
+		Icon: CancelRoundedIcon,
+		iconClass: "text-content-negative",
+		accentClass: "bg-content-negative",
+	},
+	warning: {
+		Icon: WarningAmberRoundedIcon,
+		iconClass: "text-content-notice",
+		accentClass: "bg-content-notice",
+	},
+	info: {
+		Icon: InfoRoundedIcon,
+		iconClass: "text-content-brand",
+		accentClass: "bg-surface-brand",
+	},
+} satisfies Record<ToastVariant, { Icon: React.ElementType; iconClass: string; accentClass: string }>;
+
+// ─── Toast content ────────────────────────────────────────────────────────────
+
+function ToastContent({
+	id,
+	variant,
+	title,
+	description,
+}: {
+	id: string | number;
+	variant: ToastVariant;
+	title: string;
+	description?: string;
+}) {
+	const { Icon, iconClass, accentClass } = VARIANT[variant];
+
+	return (
+		<div className="flex w-full overflow-hidden rounded-2xl border border-stroke-secondary bg-surface-primary shadow-lg">
+			{/* Left accent bar */}
+			<div className={`w-1 shrink-0 ${accentClass}`} />
+
+			{/* Content */}
+			<div className="flex flex-1 items-start gap-3 px-4 py-3">
+				<span className={`mt-0.5 shrink-0 ${iconClass}`}>
+					<Icon fontSize="small" />
+				</span>
+
+				<div className="flex min-w-0 flex-1 flex-col">
+					<p className="text-sm font-semibold leading-snug text-content-primary">
+						{title}
+					</p>
+					{description && (
+						<p className="mt-0.5 text-xs leading-snug text-content-secondary">
+							{description}
+						</p>
+					)}
+				</div>
+
+				<button
+					type="button"
+					onClick={() => toast.dismiss(id)}
+					aria-label="Dismiss"
+					className="mt-0.5 shrink-0 text-content-tertiary transition-colors hover:text-content-secondary"
+				>
+					<CloseRoundedIcon sx={{ fontSize: 16 }} />
+				</button>
+			</div>
+		</div>
+	);
+}
+
+// ─── API ──────────────────────────────────────────────────────────────────────
+
+const DURATION: Record<ToastVariant, number> = {
+	success: 4000,
+	error: 6000,
+	warning: 4000,
+	info: 4000,
+};
+
+function make(variant: ToastVariant) {
+	return (title: string, description?: string) => {
+		toast.custom(
+			(id) => (
+				<ToastContent
+					id={id}
+					variant={variant}
+					title={title}
+					description={description}
+				/>
+			),
+			{ duration: DURATION[variant] },
+		);
+	};
+}
 
 export const showToast = {
-  success: (message: string) => {
-    toast.success(message, {
-      duration: 3000,
-      position: 'top-center',
-      icon: <CheckCircleIcon sx={{ fontSize: 20, color: 'white' }} />,
-      style: {
-        background: '#22c55e',
-        color: 'white',
-        border: 'none',
-        borderRadius: '12px',
-        padding: '12px 16px',
-        fontSize: '14px',
-        fontWeight: 500,
-      },
-    });
-  },
-  
-  error: (message: string) => {
-    toast.error(message, {
-      duration: 3000,
-      position: 'top-center',
-      icon: <CancelIcon sx={{ fontSize: 20, color: 'white' }} />,
-      style: {
-        background: '#ef4444',
-        color: 'white',
-        border: 'none',
-        borderRadius: '12px',
-        padding: '12px 16px',
-        fontSize: '14px',
-        fontWeight: 500,
-      },
-    });
-  },
-  
-  warning: (message: string) => {
-    toast.warning(message, {
-      duration: 3000,
-      position: 'top-center',
-      icon: <ReportProblemIcon sx={{ fontSize: 20, color: 'white' }} />,
-      style: {
-        background: '#f59e0b',
-        color: 'white',
-        border: 'none',
-        borderRadius: '12px',
-        padding: '12px 16px',
-        fontSize: '14px',
-        fontWeight: 500,
-      },
-    });
-  },
-  
-  delete: (message: string) => {
-    toast(message, {
-      duration: 3000,
-      position: 'top-center',
-      icon: <DeleteForeverIcon sx={{ fontSize: 20, color: 'white' }} />,
-      style: {
-        background: '#dc2626',
-        color: 'white',
-        border: 'none',
-        borderRadius: '12px',
-        padding: '12px 16px',
-        fontSize: '14px',
-        fontWeight: 500,
-      },
-    });
-  },
-  
-  info: (message: string) => {
-    toast.info(message, {
-      duration: 3000,
-      position: 'top-center',
-      icon: <InfoIcon sx={{ fontSize: 20, color: 'white' }} />,
-      style: {
-        background: '#3b82f6',
-        color: 'white',
-        border: 'none',
-        borderRadius: '12px',
-        padding: '12px 16px',
-        fontSize: '14px',
-        fontWeight: 500,
-      },
-    });
-  },
+	success: make("success"),
+	error:   make("error"),
+	warning: make("warning"),
+	info:    make("info"),
 };

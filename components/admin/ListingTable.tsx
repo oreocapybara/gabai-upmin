@@ -13,7 +13,8 @@ interface ListingWithCategory {
   image_url: string | null;
   opening_hours: string | null;
   closing_hours: string | null;
-  price: number | null;
+  price_min: number | null;
+  price_max: number | null;
   Category: {
     category_name: string;
   } | null;

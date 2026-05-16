@@ -169,10 +169,10 @@ export default function Map({
 				variant="secondary"
 				size="icon"
 				className={cn(
-					"absolute right-4 z-50 h-10 w-10 shadow-md transition-opacity duration-200",
+					"absolute right-4 z-50 h-10 w-10 shadow-md transition-all duration-300",
 					isDrawerOpen
 						? "opacity-0 pointer-events-none bottom-4"
-						: "opacity-100 bottom-[102px]",
+						: "opacity-100 bottom-[94px]",
 				)}
 				onClick={handleLocate}
 				disabled={isLocateDisabled}

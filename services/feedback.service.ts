@@ -10,6 +10,29 @@ export interface Feedback {
 }
 
 export const feedbackService = {
+	async getAllAverageRatings(): Promise<Record<number, number>> {
+		const supabase = createClient();
+		const { data, error } = await supabase
+			.from("Feedback")
+			.select("listing_id, rating");
+
+		if (error) throw error;
+
+		const totals: Record<number, { sum: number; count: number }> = {};
+		for (const row of data ?? []) {
+			if (!totals[row.listing_id]) totals[row.listing_id] = { sum: 0, count: 0 };
+			totals[row.listing_id].sum += row.rating;
+			totals[row.listing_id].count += 1;
+		}
+
+		return Object.fromEntries(
+			Object.entries(totals).map(([id, { sum, count }]) => [
+				Number(id),
+				sum / count,
+			]),
+		);
+	},
+
 	async getFeedbacksForListing(listingId: number): Promise<Feedback[]> {
 		const supabase = createClient();
 		const { data, error } = await supabase

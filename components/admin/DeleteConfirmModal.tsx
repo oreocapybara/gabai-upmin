@@ -1,58 +1,78 @@
-'use client';
+"use client";
 
-import { useState } from "react";
+import { Button } from "@/components/ui/Button";
+import Warning from "@mui/icons-material/WarningAmberRounded";
 
 interface DeleteConfirmModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onConfirm: () => void;
-  listingName: string;
-  isLoading?: boolean;
+	isOpen: boolean;
+	onClose: () => void;
+	onConfirm: () => void;
+	listingName: string;
+	isLoading?: boolean;
 }
 
 export default function DeleteConfirmModal({
-  isOpen,
-  onClose,
-  onConfirm,
-  listingName,
-  isLoading = false,
+	isOpen,
+	onClose,
+	onConfirm,
+	listingName,
+	isLoading = false,
 }: DeleteConfirmModalProps) {
-  const [confirmText, setConfirmText] = useState("");
 
-  if (!isOpen) return null;
+	// Always in DOM — CSS transitions on isOpen avoid the useEffect-delay flicker.
+	return (
+		<div
+			className={[
+				"fixed inset-0 z-50 flex items-center justify-center p-4",
+				"transition-opacity duration-200 ease-out",
+				isOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none",
+			].join(" ")}
+			style={{ backgroundColor: "var(--color-black-56)" }}
+			onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+		>
+			<div
+				className={[
+					"bg-surface-primary rounded-2xl p-6 w-full max-w-[350px] shadow-xl border border-stroke-secondary",
+					"transition-all duration-200 ease-out",
+					isOpen ? "scale-100 opacity-100" : "scale-95 opacity-0",
+				].join(" ")}
+				onClick={(e) => e.stopPropagation()}
+			>
+				{/* Icon + title */}
+				<div className="flex flex-col items-center gap-2 mb-4">
+					<div className="flex items-center justify-center w-12 h-12 rounded-full bg-surface-notice-subtle">
+						<Warning className="text-content-notice !text-[24px]" />
+					</div>
+					<h2 className="text-base font-semibold text-content-primary text-center">
+						Delete listing?
+					</h2>
+					<p className="text-sm text-content-secondary text-center">
+						This will permanently remove{" "}
+						<span className="font-medium text-content-primary">{listingName}</span>{" "}
+						from the database. This action cannot be undone.
+					</p>
+				</div>
 
-  const isConfirmDisabled = confirmText !== listingName || isLoading;
-
-  return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl p-6 w-full max-w-[350px] shadow-lg border border-gray-200">
-        {/* Title */}
-        <h2 className="text-base font-semibold text-center text-black mb-1">
-          Are you sure?
-        </h2>
-        
-        {/* Message */}
-        <p className="text-sm text-gray-500 text-center mb-6">
-          Deleting this listing will permanently remove it from the database. This action cannot be undone.
-        </p>
-        
-        {/* Buttons */}
-        <div className="flex gap-4">
-          <button
-            onClick={onConfirm}
-            disabled={isLoading}
-            className="flex-1 bg-[#8A1538] text-white font-semibold text-sm py-2.5 rounded-2xl hover:bg-[#6d102d] transition-colors"
-          >
-            Delete
-          </button>
-          <button
-            onClick={onClose}
-            className="flex-1 border border-gray-300 text-[#8A1538] font-semibold text-sm py-2.5 rounded-2xl hover:bg-gray-50 transition-colors"
-          >
-            Cancel
-          </button>
-        </div>
-      </div>
-    </div>
-  );
+				{/* Buttons */}
+				<div className="flex gap-3">
+					<Button
+						variant="secondary"
+						onClick={onClose}
+						disabled={isLoading}
+						className="flex-1"
+					>
+						Cancel
+					</Button>
+					<Button
+						variant="default"
+						onClick={onConfirm}
+						disabled={isLoading}
+						className="flex-1 bg-surface-negative hover:bg-content-negative-bold active:bg-content-negative-bold text-content-inverse-primary"
+					>
+						{isLoading ? "Deleting…" : "Delete"}
+					</Button>
+				</div>
+			</div>
+		</div>
+	);
 }

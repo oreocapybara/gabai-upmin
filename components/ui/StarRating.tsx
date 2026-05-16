@@ -65,7 +65,7 @@ function resolveValueFromClientX(
 function useStarRating(
   initialValue: number,
   onRate: (rating: number) => void,
-  containerRef: React.RefObject<HTMLDivElement>
+  containerRef: React.RefObject<HTMLDivElement | null>
 ) {
   // committedValue: the saved rating after a click or tap.
   // hoverValue: the live preview shown while the pointer/finger is moving.

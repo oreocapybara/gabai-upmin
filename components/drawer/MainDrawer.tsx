@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { Button } from "@/components/ui/Button";
 import { Box, Drawer } from "@mui/material";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
+import DirectionsIcon from "@mui/icons-material/Directions";
 import { ChevronLeft } from "lucide-react";
 
 import { ListingDetails } from "@/components/listing/ListingDetails";
@@ -21,11 +22,14 @@ import {
 	useDraggableDrawer,
 } from "@/hooks/drawer/useDraggableDrawer";
 
+import { isListingOpen } from "@/lib/utils";
+import { useAllRatings } from "@/hooks/listing/useAllRatings";
 import type { Category, ListingWithCategory } from "@/types";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type DrawerView = "list" | "details" | "reviews";
+type SortOption = "default" | "open-first" | "price-asc" | "rating-desc" | "rating-asc";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -44,6 +48,7 @@ export function MainDrawer({
 	onSnapChange,
 	searchQuery,
 	selectionSource,
+	initialCategoryId = "",
 }: {
 	listings: ListingWithCategory[];
 	categories: Category[];
@@ -54,16 +59,19 @@ export function MainDrawer({
 	onSnapChange?: (snap: SnapPoint) => void;
 	searchQuery?: string;
 	selectionSource?: "pin" | "list" | null;
+	initialCategoryId?: string;
 }) {
 	const mounted = useMounted();
 	const isLoading = false;
 
 	const [view, setView] = useState<DrawerView>("list");
-	const [transitionView, setTransitionView] = useState<DrawerView>("list");
+	const [, setTransitionView] = useState<DrawerView>("list");
 	const [isTransitioning, setIsTransitioning] = useState(false);
 	const [activeListing, setActiveListing] =
 		useState<ListingWithCategory | null>(null);
-	const [selectedCategoryId, setSelectedCategoryId] = useState<string>("");
+	const [selectedCategoryId, setSelectedCategoryId] = useState<string>(initialCategoryId);
+	const [sortBy, setSortBy] = useState<SortOption>("default");
+	const allRatings = useAllRatings();
 	const [pendingRating, setPendingRating] = useState(0);
 	const [reviewToast, setReviewToast] = useState<{
 		variant: "success" | "error";
@@ -94,6 +102,7 @@ export function MainDrawer({
 	// ── Drawer drag hook
 	const {
 		snapState,
+		isDragging,
 		snapTo,
 		snapToPx,
 		onPointerDown,
@@ -109,6 +118,32 @@ export function MainDrawer({
 	useEffect(() => {
 		onSnapChange?.(snapState);
 	}, [onSnapChange, snapState]);
+
+	// ── Directions banner animation state ─────────────────────────────────────
+	// Keep a stable listing reference so the name stays visible during exit anim.
+	const [bannerListing, setBannerListing] = useState<ListingWithCategory | null>(null);
+	const [bannerVisible, setBannerVisible] = useState(false);
+	const bannerHideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+	useEffect(() => {
+		const shouldShow = !!directionsListing && snapState === 0 && !isDragging;
+		if (shouldShow) {
+			if (bannerHideTimerRef.current) clearTimeout(bannerHideTimerRef.current);
+			setBannerListing(directionsListing);
+			requestAnimationFrame(() => setBannerVisible(true));
+		} else {
+			setBannerVisible(false);
+			bannerHideTimerRef.current = setTimeout(() => setBannerListing(null), 300);
+		}
+		return () => {
+			if (bannerHideTimerRef.current) clearTimeout(bannerHideTimerRef.current);
+		};
+	}, [directionsListing, snapState, isDragging]);
+
+	useEffect(() => {
+		if (initialCategoryId) snapTo(30);
+	// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, []);
 
 	// ── Navigation handlers ────────────────────────────────────────────────────
 
@@ -156,6 +191,7 @@ export function MainDrawer({
 
 	useEffect(() => {
 		if (!searchQuery) return;
+		setSortBy("default");
 		setTransitionView("list");
 		setIsTransitioning(true);
 		window.setTimeout(() => {
@@ -217,6 +253,7 @@ export function MainDrawer({
 	const handleCategoryChange = useCallback(
 		(categoryId: string) => {
 			setSelectedCategoryId(categoryId);
+			setSortBy("default");
 			setTransitionView("list");
 			setIsTransitioning(true);
 			window.setTimeout(() => {
@@ -240,6 +277,40 @@ export function MainDrawer({
 	const filteredListings = selectedCategoryName
 		? listings.filter((l) => l.category.category_name === selectedCategoryName)
 		: listings;
+
+	const sortedListings = useMemo(() => {
+		const list = [...filteredListings];
+		switch (sortBy) {
+			case "open-first":
+				return list.sort((a, b) => {
+					const aOpen = isListingOpen(a.opening_hours, a.closing_hours) ? 0 : 1;
+					const bOpen = isListingOpen(b.opening_hours, b.closing_hours) ? 0 : 1;
+					return aOpen - bOpen;
+				});
+			case "price-asc":
+				return list.sort((a, b) => {
+					const aPrice = a.price_min ?? Infinity;
+					const bPrice = b.price_min ?? Infinity;
+					return aPrice - bPrice;
+				});
+			case "rating-desc":
+				return list.sort((a, b) => {
+					const aR = allRatings[a.listing_id] ?? -1;
+					const bR = allRatings[b.listing_id] ?? -1;
+					return bR - aR;
+				});
+			case "rating-asc":
+				return list.sort((a, b) => {
+					const aR = allRatings[a.listing_id] ?? Infinity;
+					const bR = allRatings[b.listing_id] ?? Infinity;
+					return aR - bR;
+				});
+			default:
+				return list.sort((a, b) =>
+					a.listing_name.localeCompare(b.listing_name),
+				);
+		}
+	}, [filteredListings, sortBy, allRatings]);
 
 	const directionsListingId = directionsListing?.listing_id ?? null;
 
@@ -317,6 +388,7 @@ export function MainDrawer({
 							categories={categories}
 							menuPlacement={snapState === 0 ? "top" : "bottom"}
 							onCategoryChange={handleCategoryChange}
+							defaultValue={initialCategoryId}
 						/>
 						<Button
 							variant="mono"
@@ -346,9 +418,71 @@ export function MainDrawer({
 								: "opacity-100 translate-y-0")
 						}
 					>
+						{/* ── Sort + rating chips — sticky float, slides in when drawer opens ── */}
+						{view === "list" && (
+							<div
+								className={[
+									"sticky top-0 z-10 -mx-4 px-4 bg-surface-primary",
+									"overflow-hidden transition-all duration-300 ease-out",
+									snapState >= 60
+										? "max-h-[88px] opacity-100 pt-3 pb-2 border-b border-stroke-tertiary"
+										: "max-h-0 opacity-0 pointer-events-none",
+								].join(" ")}
+							>
+								{/* Sort */}
+								<div className="flex gap-2 overflow-x-auto scrollbar-none">
+									{(
+										[
+											{ key: "default",    label: "A – Z"      },
+											{ key: "open-first", label: "Open first" },
+											{ key: "price-asc",  label: "Price ↑"   },
+										] as { key: SortOption; label: string }[]
+									).map(({ key, label }) => (
+										<button
+											key={key}
+											onClick={() => setSortBy(key)}
+											className={[
+												"shrink-0 rounded-full px-3 py-1 text-xs font-medium",
+												"border transition-colors duration-150",
+												sortBy === key
+													? "bg-surface-brand border-surface-brand text-content-inverse-primary"
+													: "bg-surface-primary border-stroke-secondary text-content-secondary hover:bg-surface-hover",
+											].join(" ")}
+										>
+											{label}
+										</button>
+									))}
+								</div>
+
+								{/* Rating sort */}
+								<div className="flex gap-2 overflow-x-auto scrollbar-none mt-2">
+									{(
+										[
+											{ key: "rating-desc", label: "Rating ↓" },
+											{ key: "rating-asc",  label: "Rating ↑" },
+										] as { key: SortOption; label: string }[]
+									).map(({ key, label }) => (
+										<button
+											key={key}
+											onClick={() => setSortBy(sortBy === key ? "default" : key)}
+											className={[
+												"shrink-0 rounded-full px-3 py-1 text-xs font-medium",
+												"border transition-colors duration-150",
+												sortBy === key
+													? "bg-surface-brand border-surface-brand text-content-inverse-primary"
+													: "bg-surface-primary border-stroke-secondary text-content-secondary hover:bg-surface-hover",
+											].join(" ")}
+										>
+											{label}
+										</button>
+									))}
+								</div>
+							</div>
+						)}
+
 						{view === "list" && (
 							<ListingList
-								listings={filteredListings}
+								listings={sortedListings}
 								isLoading={isLoading}
 								onDetails={handleOpenDetails}
 								onDirections={handleDirections}
@@ -417,6 +551,42 @@ export function MainDrawer({
 				>
 					{reviewToast.message}
 				</NotificationBanner>
+			)}
+
+			{/* ── Active directions banner — animates in/out above the puller ── */}
+			{bannerListing && (
+				<div
+					className={[
+						// left-4 matches the locate-button's right-4 margin on the opposite side.
+						// right-[64px] = 40px (locate btn) + 8px gap + 16px screen edge — keeps
+						// both controls in a visual row without putting them in the same component.
+						"fixed left-4 right-[64px] flex pointer-events-none z-[2100]",
+						"transition-all duration-300 ease-out",
+						bannerVisible
+							? "opacity-100 translate-y-0"
+							: "opacity-0 translate-y-3 pointer-events-none",
+					].join(" ")}
+					style={{ bottom: PULLER_HEIGHT + 8 }}
+				>
+					<div className="pointer-events-auto flex items-center gap-2.5 bg-surface-brand text-content-inverse-primary pl-4 pr-2 py-2.5 rounded-2xl shadow-lg w-full">
+						<DirectionsIcon className="!text-[20px] shrink-0 opacity-90" />
+						<div className="flex flex-col flex-1 min-w-0">
+							<span className="text-[10px] font-medium opacity-70 leading-tight uppercase tracking-wide">
+								Navigating to
+							</span>
+							<span className="text-s font-semibold truncate leading-tight mt-0.5">
+								{bannerListing.listing_name}
+							</span>
+						</div>
+						<button
+							aria-label="Stop directions"
+							onClick={() => onDirections?.(bannerListing)}
+							className="flex items-center justify-center w-8 h-8 rounded-xl bg-white/20 hover:bg-white/30 active:bg-white/40 transition-colors shrink-0"
+						>
+							<CloseRoundedIcon className="!text-[18px]" />
+						</button>
+					</div>
+				</div>
 			)}
 		</Box>
 	);

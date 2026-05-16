@@ -24,6 +24,7 @@ export function useDraggableDrawer({
 	const [snapState, setSnapState] = useState<SnapPoint>(0);
 
 	const dragging = useRef(false);
+	const [isDragging, setIsDragging] = useState(false);
 	const activePointerId = useRef<number | null>(null);
 	const startY = useRef(0);
 	const startHeightPx = useRef(0);
@@ -93,6 +94,7 @@ export function useDraggableDrawer({
 			}
 
 			dragging.current = false;
+			setIsDragging(false);
 			activePointerId.current = null;
 			const currentH =
 				resolvePaper()?.offsetHeight ?? snapToPx(snapRef.current);
@@ -123,6 +125,7 @@ export function useDraggableDrawer({
 			e.currentTarget.setPointerCapture(e.pointerId);
 			activePointerId.current = e.pointerId;
 			dragging.current = true;
+			setIsDragging(true);
 			startY.current = e.clientY;
 			startHeightPx.current =
 				resolvePaper()?.offsetHeight ?? snapToPx(snapRef.current);
@@ -150,6 +153,7 @@ export function useDraggableDrawer({
 		(e: React.PointerEvent<HTMLDivElement>) => {
 			if (!dragging.current) return;
 			dragging.current = false;
+			setIsDragging(false);
 			activePointerId.current = null;
 			try {
 				e.currentTarget.releasePointerCapture(e.pointerId);
@@ -176,6 +180,7 @@ export function useDraggableDrawer({
 
 	return {
 		snapState,
+		isDragging,
 		snapTo,
 		snapToPx,
 		onPointerDown,

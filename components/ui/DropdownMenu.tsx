@@ -10,12 +10,14 @@ export default function DropdownMenu({
 	categories,
 	onCategoryChange,
 	menuPlacement = "bottom",
+	defaultValue = "",
 }: {
 	categories: Category[];
 	onCategoryChange?: (categoryId: string) => void;
 	menuPlacement?: "top" | "bottom";
+	defaultValue?: string;
 }) {
-	const [category, setCategory] = React.useState("");
+	const [category, setCategory] = React.useState(defaultValue);
 	const [open, setOpen] = React.useState(false);
 	const ref = React.useRef<HTMLDivElement>(null);
 
@@ -48,12 +50,12 @@ export default function DropdownMenu({
 		: null;
 
 	return (
-		<div ref={ref} className="relative min-w-56 font-body">
+		<div ref={ref} className="relative min-w-56  font-body">
 			{/* Trigger */}
 			<button
 				onClick={() => setOpen((prev) => !prev)}
 				onPointerDown={(event) => event.stopPropagation()}
-				className={`flex w-full justify-between items-center gap-1.5 rounded-full border-2 px-4 py-1 transition-all duration-150 ${
+				className={`flex w-full h-full justify-between items-center gap-1.5 rounded-full border-2 px-4 py-1 transition-all duration-150 ${
 					open
 						? "border-content-brand shadow-sm"
 						: "border-stroke hover:border-content-brand"
@@ -72,7 +74,7 @@ export default function DropdownMenu({
 						/>
 					)}
 					<span
-						className={`truncate text-left text-m font-normal leading-none ${
+						className={`truncate text-left text-m font-normal leading-none${
 							selectedCategory
 								? "text-content-secondary"
 								: "text-content-secondary"
@@ -95,7 +97,7 @@ export default function DropdownMenu({
 
 			{/* Dropdown panel */}
 			<div
-				className={`absolute left-0 z-50 w-full origin-top rounded-2xl border-2 border-stroke-secondary bg-surface-primary py-2 shadow-lg font-body transition-all duration-200 ease-out ${
+				className={`absolute left-0 z-[1000] w-full origin-top rounded-2xl border-2 border-stroke-secondary bg-surface-primary py-2 shadow-lg font-body transition-all duration-200 ease-out ${
 					menuPlacement === "top" ? "bottom-full mb-2" : "mt-2"
 				} ${
 					open

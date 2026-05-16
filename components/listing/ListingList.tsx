@@ -34,6 +34,7 @@ export default function ListingList({
 		);
 	}
 
+	// Bubble the active directions listing to the top; otherwise preserve caller's order.
 	const orderedListings = directionsListingId
 		? [
 				...listings.filter((l) => l.listing_id === directionsListingId),
