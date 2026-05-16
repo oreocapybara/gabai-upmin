@@ -35,19 +35,22 @@ export type Database = {
       Admin_Log: {
         Row: {
           admin_id: number
-          listing_id: number
+          listing_id: number | null
+          listing_name: string | null
           log_id: number
           status: Database["public"]["Enums"]["status"] | null
         }
         Insert: {
           admin_id: number
-          listing_id: number
+          listing_id?: number | null
+          listing_name?: string | null
           log_id?: number
           status?: Database["public"]["Enums"]["status"] | null
         }
         Update: {
           admin_id?: number
-          listing_id?: number
+          listing_id?: number | null
+          listing_name?: string | null
           log_id?: number
           status?: Database["public"]["Enums"]["status"] | null
         }
@@ -125,11 +128,13 @@ export type Database = {
           coord_latitude: number
           coord_longitude: number
           description: string | null
+          image_path: string | null
           image_url: string | null
           listing_id: number
           listing_name: string
           opening_hours: string | null
-          price: number | null
+          price_max: number | null
+          price_min: number | null
         }
         Insert: {
           category_id: number
@@ -137,11 +142,13 @@ export type Database = {
           coord_latitude: number
           coord_longitude: number
           description?: string | null
+          image_path?: string | null
           image_url?: string | null
           listing_id?: number
           listing_name: string
           opening_hours?: string | null
-          price?: number | null
+          price_max?: number | null
+          price_min?: number | null
         }
         Update: {
           category_id?: number
@@ -149,11 +156,13 @@ export type Database = {
           coord_latitude?: number
           coord_longitude?: number
           description?: string | null
+          image_path?: string | null
           image_url?: string | null
           listing_id?: number
           listing_name?: string
           opening_hours?: string | null
-          price?: number | null
+          price_max?: number | null
+          price_min?: number | null
         }
         Relationships: [
           {
@@ -165,12 +174,28 @@ export type Database = {
           },
         ]
       }
+      site_stats: {
+        Row: {
+          id: number
+          visitor_count: number | null
+        }
+        Insert: {
+          id?: number
+          visitor_count?: number | null
+        }
+        Update: {
+          id?: number
+          visitor_count?: number | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
       hook_block_non_admins_by_email: { Args: { event: Json }; Returns: Json }
+      increment_visitor_count: { Args: never; Returns: undefined }
       is_admin_email: { Args: { p_email: string }; Returns: boolean }
       is_admin_or_up: { Args: never; Returns: boolean }
       is_up_admin: { Args: never; Returns: boolean }

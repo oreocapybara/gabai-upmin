@@ -4,15 +4,20 @@ import KeyboardArrowDownRounded from "@mui/icons-material/KeyboardArrowDownRound
 import MenuRounded from "@mui/icons-material/MenuRounded";
 import { Category } from "../../types/index";
 import { getPinStyle } from "@/components/map/MapPin";
+import { formatCategoryName } from "@/lib/utils";
 
 export default function DropdownMenu({
 	categories,
 	onCategoryChange,
+	menuPlacement = "bottom",
+	defaultValue = "",
 }: {
 	categories: Category[];
 	onCategoryChange?: (categoryId: string) => void;
+	menuPlacement?: "top" | "bottom";
+	defaultValue?: string;
 }) {
-	const [category, setCategory] = React.useState("");
+	const [category, setCategory] = React.useState(defaultValue);
 	const [open, setOpen] = React.useState(false);
 	const ref = React.useRef<HTMLDivElement>(null);
 
@@ -45,11 +50,12 @@ export default function DropdownMenu({
 		: null;
 
 	return (
-		<div ref={ref} className="relative min-w-56 font-body">
+		<div ref={ref} className="relative min-w-56  font-body">
 			{/* Trigger */}
 			<button
 				onClick={() => setOpen((prev) => !prev)}
-				className={`flex w-full justify-between items-center gap-1.5 rounded-full border-2 px-4 py-1 transition-all duration-150 ${
+				onPointerDown={(event) => event.stopPropagation()}
+				className={`flex w-full h-full justify-between items-center gap-1.5 rounded-full border-2 px-4 py-1 transition-all duration-150 ${
 					open
 						? "border-content-brand shadow-sm"
 						: "border-stroke hover:border-content-brand"
@@ -68,10 +74,10 @@ export default function DropdownMenu({
 						/>
 					)}
 					<span
-						className={`truncate text-left text-m font-normal leading-none ${
+						className={`truncate text-left text-m font-normal leading-none${
 							selectedCategory
-								? "text-content-tertiary"
-								: "text-content-tertiary"
+								? "text-content-secondary"
+								: "text-content-secondary"
 						}`}
 					>
 						{selectedCategory
@@ -90,43 +96,49 @@ export default function DropdownMenu({
 			</button>
 
 			{/* Dropdown panel */}
-			{open && (
-				<div className="absolute left-0 z-50 mt-2 w-full rounded-2xl border-2 border-stroke-secondary bg-surface-primary py-2 shadow-lg font-body">
-					{/* Show All */}
-					<DropdownItem
-						isSelected={!category}
-						onSelect={() => handleSelect("")}
-						icon={
-							<MenuRounded
-								fontSize="medium"
-								className={`shrink-0 ${!category ? "text-content-brand" : "text-content-tertiary"}`}
-							/>
-						}
-						label="Show All"
-					/>
+			<div
+				className={`absolute left-0 z-[1000] w-full origin-top rounded-2xl border-2 border-stroke-secondary bg-surface-primary py-2 shadow-lg font-body transition-all duration-200 ease-out ${
+					menuPlacement === "top" ? "bottom-full mb-2" : "mt-2"
+				} ${
+					open
+						? "scale-100 opacity-100"
+						: "pointer-events-none scale-95 opacity-0"
+				}`}
+			>
+				{/* Show All */}
+				<DropdownItem
+					isSelected={!category}
+					onSelect={() => handleSelect("")}
+					icon={
+						<MenuRounded
+							fontSize="medium"
+							className={`shrink-0 ${!category ? "text-content-brand" : "text-content-tertiary"}`}
+						/>
+					}
+					label="Show All"
+				/>
 
-					{/* Category items */}
-					{categories.map((item) => {
-						const { Icon } = getPinStyle(item.category_name);
-						const isSelected = String(item.category_id) === category;
+				{/* Category items */}
+				{categories.map((item) => {
+					const { Icon } = getPinStyle(item.category_name);
+					const isSelected = String(item.category_id) === category;
 
-						return (
-							<DropdownItem
-								key={item.category_id}
-								isSelected={isSelected}
-								onSelect={() => handleSelect(String(item.category_id))}
-								icon={
-									<Icon
-										fontSize="medium"
-										className={`shrink-0 ${isSelected ? "text-content-brand" : "text-content-se"}`}
-									/>
-								}
-								label={formatCategoryName(item.category_name)}
-							/>
-						);
-					})}
-				</div>
-			)}
+					return (
+						<DropdownItem
+							key={item.category_id}
+							isSelected={isSelected}
+							onSelect={() => handleSelect(String(item.category_id))}
+							icon={
+								<Icon
+									fontSize="medium"
+									className={`shrink-0 ${isSelected ? "text-content-brand" : "text-content-se"}`}
+								/>
+							}
+							label={formatCategoryName(item.category_name)}
+						/>
+					);
+				})}
+			</div>
 		</div>
 	);
 }
@@ -162,16 +174,3 @@ function DropdownItem({
 		</button>
 	);
 }
-
-const formatCategoryName = (name: string) => {
-	const normalized = name.toLowerCase();
-	if (normalized === "canteen-eatery") return "Canteen / Eatery";
-	if (normalized === "clinic-hospital") return "Clinic / Hospital";
-
-	return name
-		.replace(/[-_]/g, " ")
-		.split(/\s+/)
-		.filter(Boolean)
-		.map((word) => word[0]?.toUpperCase() + word.slice(1))
-		.join(" ");
-};

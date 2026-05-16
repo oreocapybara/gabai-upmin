@@ -10,9 +10,25 @@ type InputProps = React.ComponentProps<"input"> & {
 	helpText?: string;
 	label?: string;
 	id?: string;
+	multiline?: boolean;
+	wrapperClassName?: string;
 };
 
-const Input = React.forwardRef<HTMLInputElement, InputProps>(
+type TextareaProps = React.ComponentProps<"textarea"> & {
+	state?: InputState;
+	leading?: React.ReactNode;
+	trailing?: React.ReactNode;
+	helpText?: string;
+	label?: string;
+	id?: string;
+	multiline: true;
+	wrapperClassName?: string;
+};
+
+const Input = React.forwardRef<
+	HTMLInputElement | HTMLTextAreaElement,
+	InputProps | TextareaProps
+>(
 	(
 		{
 			className,
@@ -22,6 +38,8 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
 			leading,
 			trailing,
 			helpText,
+			multiline = false,
+			wrapperClassName,
 			...props
 		},
 		ref,
@@ -56,7 +74,12 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
 
 		return (
 			// Input + Helptext Wrapper
-			<div className={cn("flex flex-col relative w-full min-w-0 sm:min-w-80")}>
+			<div
+				className={cn(
+					"flex flex-col items-start relative w-full min-w-0 sm:min-w-80",
+					wrapperClassName,
+				)}
+			>
 				{/* Input Wrapper */}
 				<div
 					className={cn(
@@ -77,11 +100,18 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
 					) : null}
 
 					{/* Content Wrapper */}
-					<div className={cn("flex flex-1 min-w-0 items-center gap-2")}>
+					<div
+						className={cn(
+							"flex flex-1 min-w-0",
+							multiline ? "items-start" : "items-center",
+							"gap-2",
+						)}
+					>
 						{leading ? (
 							<span
 								className={cn(
 									"flex h-6 w-6 items-center justify-center",
+									multiline ? "mt-2" : "",
 									iconStyles[state],
 								)}
 							>
@@ -89,15 +119,27 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
 							</span>
 						) : null}
 
-						<input
-							id={inputId}
-							ref={ref}
-							{...props}
-							className={cn(
-								"flex-1 min-w-0 bg-transparent text-content-primary text-m outline-none placeholder:text-content-tertiary",
-								className,
-							)}
-						/>
+						{multiline ? (
+							<textarea
+								id={inputId}
+								ref={ref as React.Ref<HTMLTextAreaElement>}
+								{...(props as React.ComponentProps<"textarea">)}
+								className={cn(
+									"flex-1 min-w-0 bg-transparent text-content-primary text-m outline-none placeholder:text-content-tertiary resize-none",
+									className,
+								)}
+							/>
+						) : (
+							<input
+								id={inputId}
+								ref={ref as React.Ref<HTMLInputElement>}
+								{...(props as React.ComponentProps<"input">)}
+								className={cn(
+									"flex-1 min-w-0 bg-transparent text-content-primary text-m outline-none placeholder:text-content-tertiary",
+									className,
+								)}
+							/>
+						)}
 					</div>
 
 					{trailing ? (

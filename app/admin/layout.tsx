@@ -1,8 +1,36 @@
-import { DeployButton } from "@/components/DeployButton";
-import { AuthButton } from "@/components/auth/AuthButton";
-import { ThemeSwitcher } from "@/components/ThemeSwitcher";
-import Link from "next/link";
 import { Suspense } from "react";
+import { ToastProvider } from "@/components/ui/ToastProvider";
+import { AdminDashboardSkeleton } from "@/components/admin/AdminDashboardSkeleton";
+import { redirect } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
+
+async function requireAdmin() {
+	const supabase = await createClient();
+	const {
+		data: { user },
+	} = await supabase.auth.getUser();
+
+	if (!user) {
+		redirect("/auth/login");
+	}
+
+	const role = user.app_metadata?.role ?? user.user_metadata?.role;
+	if (role === "admin") return;
+
+	if (user.email) {
+		const { data, error } = await supabase.rpc("is_admin_email", {
+			p_email: user.email,
+		});
+		if (!error && data) return;
+	}
+
+	redirect("/admin/unauthorized");
+}
+
+async function AdminGate({ children }: { children: React.ReactNode }) {
+	await requireAdmin();
+	return children;
+}
 
 export default function AdminLayout({
 	children,
@@ -10,40 +38,11 @@ export default function AdminLayout({
 	children: React.ReactNode;
 }) {
 	return (
-		<main className="min-h-screen flex flex-col items-center">
-			<div className="flex-1 w-full flex flex-col gap-20 items-center">
-				<nav className="w-full flex justify-center border-b border-b-foreground/10 h-16">
-					<div className="w-full max-w-5xl flex justify-between items-center p-3 px-5 text-sm">
-						<div className="flex gap-5 items-center font-semibold">
-							<Link href="/">UPMin Admin</Link>
-							<div className="flex items-center gap-2">
-								<DeployButton />
-							</div>
-						</div>
-						<Suspense>
-							<AuthButton />
-						</Suspense>
-					</div>
-				</nav>
-				<div className="flex-1 flex flex-col gap-20 max-w-5xl p-5">
-					{children}
-				</div>
-
-				<footer className="w-full flex items-center justify-center border-t mx-auto text-center text-xs gap-8 py-16">
-					<p>
-						Powered by{" "}
-						<a
-							href="https://supabase.com/?utm_source=create-next-app&utm_medium=template&utm_term=nextjs"
-							target="_blank"
-							className="font-bold hover:underline"
-							rel="noreferrer"
-						>
-							Supabase
-						</a>
-					</p>
-					<ThemeSwitcher />
-				</footer>
-			</div>
-		</main>
+		<>
+			<ToastProvider />
+			<Suspense fallback={<AdminDashboardSkeleton />}>
+				<AdminGate>{children}</AdminGate>
+			</Suspense>
+		</>
 	);
 }

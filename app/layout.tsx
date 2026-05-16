@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Montserrat, Inter } from "next/font/google";
 import { ThemeProvider } from "next-themes";
+import EmotionRegistry from "@/components/EmotionRegistry";
 import "./globals.css";
 
 const defaultUrl = process.env.VERCEL_URL
@@ -35,14 +36,16 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning className={`${montserrat.variable} ${inter.variable}`}>
       <body>
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="system"
-          enableSystem
-          disableTransitionOnChange
-        >
-          {children}
-        </ThemeProvider>
+        <EmotionRegistry>
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="system"
+            enableSystem
+            disableTransitionOnChange
+          >
+            {children}
+          </ThemeProvider>
+        </EmotionRegistry>
       </body>
     </html>
   );
