@@ -7,7 +7,7 @@ const GAP = CIRCUMFERENCE - ARC;
 
 export default function Loading() {
 	return (
-		<main className="flex min-h-svh w-full items-center justify-center bg-surface-brand">
+		<main className="flex min-h-svh w-screen items-center justify-center bg-surface-brand">
 			<div className="flex flex-col items-center gap-5">
 
 				{/* Logo + spinner ring */}
