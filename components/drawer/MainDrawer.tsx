@@ -33,7 +33,7 @@ type SortOption = "default" | "open-first" | "price-asc" | "rating-desc" | "rati
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const PULLER_HEIGHT = 86;
+const PULLER_HEIGHT = 90; //in px
 const SNAP_POINTS: SnapPoint[] = [0, 30, 60, 90];
 
 // ─── Component ────────────────────────────────────────────────────────────────
