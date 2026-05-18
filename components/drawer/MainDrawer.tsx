@@ -205,6 +205,7 @@ export function MainDrawer({
 
 	const handleGoBack = useCallback(() => {
 		if (view === "reviews") {
+			setPendingRating(0);
 			setTransitionView("details");
 			setIsTransitioning(true);
 			window.setTimeout(() => {
