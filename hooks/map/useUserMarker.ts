@@ -68,7 +68,6 @@ function buildMarkerElement(): {
 		top: "-32px",
 		overflow: "visible",
 		pointerEvents: "none",
-		// NO transform / transition here — purely positional.
 	});
 
 	// Radial gradient centred on the dot at SVG (32,32).
@@ -99,19 +98,15 @@ function buildMarkerElement(): {
 	// injected stylesheet (.user-cone-group) so they're in SVG coordinate space.
 	const g = document.createElementNS(ns, "g") as SVGGElement;
 	g.setAttribute("class", "user-cone-group");
-	// Hidden by default — shown when heading is available.
 	g.style.opacity = "0";
 
-	// Cone: apex at (32,32), ~50° fan pointing up.
 	const path = document.createElementNS(ns, "path");
 	path.setAttribute("d", "M 32 32 L 19 4 L 45 4 Z");
 	path.setAttribute("fill", "url(#userConeGrad)");
 	g.appendChild(path);
 	svg.appendChild(g);
 
-	// ── Pulse ring — centered on anchor (0,0) ────────────────────────────────
-	// left/top stay at 0 so the keyframe translate(-50%,-50%) is the sole
-	// centering mechanism and doesn't double-shift.
+	// ── Pulse ring ────────────────────────────────────────────────────────────
 	const pulse = document.createElement("div");
 	pulse.className = "user-marker-pulse";
 	Object.assign(pulse.style, {
@@ -125,11 +120,7 @@ function buildMarkerElement(): {
 		pointerEvents: "none",
 	});
 
-	// ── Core dot — centered on anchor (0,0) ──────────────────────────────────
-	// box-sizing: border-box ensures the layout box is exactly 20×20 so the
-	// dot center lands at (0,0) and aligns with the pulse ring's center.
-	// Without it (content-box default) the 14px box + 3px border shifts the
-	// layout center to (-3,-3) and the pulse radiates from the wrong point.
+	// ── Core dot ──────────────────────────────────────────────────────────────
 	const dot = document.createElement("div");
 	Object.assign(dot.style, {
 		position: "absolute",
@@ -159,12 +150,15 @@ export function useUserMarker({ map, position }: UserMarkerParams) {
 		useRef<google.maps.marker.AdvancedMarkerElement | null>(null);
 	const coneGroupRef = useRef<SVGGElement | null>(null);
 
-	// Create the marker once when map + initial position are both ready.
+	// ── Creation effect — runs once per map instance ───────────────────────────
+	// Waits for both map and position to be available, then creates the marker
+	// exactly once. Cleanup only cancels in-flight async — it never destroys
+	// the marker, so position updates don't trigger a destroy/recreate cycle.
 	useEffect(() => {
 		if (!map || !position || markerRef.current) return;
 
 		injectStyles();
-		let isCancelled = false;
+		let cancelled = false;
 
 		const { wrapper, coneGroup } = buildMarkerElement();
 		coneGroupRef.current = coneGroup;
@@ -174,7 +168,6 @@ export function useUserMarker({ map, position }: UserMarkerParams) {
 			coneGroup.style.transition = "none";
 			coneGroup.style.opacity = "1";
 			coneGroup.style.transform = `rotate(${position.heading}deg)`;
-			// Re-enable transition on next frame so subsequent updates animate.
 			requestAnimationFrame(() => {
 				coneGroup.style.transition = "";
 			});
@@ -182,7 +175,7 @@ export function useUserMarker({ map, position }: UserMarkerParams) {
 
 		createAdvancedMarker(map, position, "Your Location", wrapper).then(
 			(marker) => {
-				if (isCancelled) {
+				if (cancelled) {
 					removeMarker(marker);
 					return;
 				}
@@ -190,27 +183,36 @@ export function useUserMarker({ map, position }: UserMarkerParams) {
 			},
 		);
 
+		// Only cancel the async operation — do not remove the marker here.
+		// Marker lifetime is managed by the destruction effect below.
 		return () => {
-			isCancelled = true;
+			cancelled = true;
+		};
+	}, [map, position]);
+
+	// ── Destruction effect — removes the marker when map changes or on unmount ─
+	useEffect(() => {
+		return () => {
 			if (markerRef.current) {
 				removeMarker(markerRef.current);
 				markerRef.current = null;
 			}
 			coneGroupRef.current = null;
 		};
-	}, [map, position]);
+	}, [map]);
 
-	// Update position + heading on every subsequent position change.
+	// ── Position update effect — updates coordinates and heading on every tick ─
 	useEffect(() => {
-		if (!markerRef.current) return;
+		const marker = markerRef.current;
+		if (!marker) return;
 
 		if (!position) {
-			removeMarker(markerRef.current);
-			markerRef.current = null;
+			marker.map = null;
 			return;
 		}
 
-		markerRef.current.position = { lat: position.lat, lng: position.lng };
+		marker.map = map;
+		marker.position = { lat: position.lat, lng: position.lng };
 
 		if (coneGroupRef.current) {
 			if (position.heading == null) {
@@ -220,5 +222,5 @@ export function useUserMarker({ map, position }: UserMarkerParams) {
 				coneGroupRef.current.style.transform = `rotate(${position.heading}deg)`;
 			}
 		}
-	}, [position]);
+	}, [map, position]);
 }
