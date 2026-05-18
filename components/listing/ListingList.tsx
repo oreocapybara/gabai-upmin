@@ -1,6 +1,7 @@
 import { ListingWithCategory } from "@/types";
 import { ListingCardSkeleton } from "./ListingSkeleton";
 import ListingCard from "./ListingCard";
+import type { RatingStat } from "@/hooks/listing/useAllRatings";
 
 export default function ListingList({
 	listings,
@@ -8,12 +9,16 @@ export default function ListingList({
 	onDetails,
 	onDirections,
 	directionsListingId,
+	allRatings = {},
+	ratingsLoaded = false,
 }: {
 	listings: ListingWithCategory[];
 	isLoading: boolean;
 	onDetails: (listing: ListingWithCategory) => void;
 	onDirections: (listing: ListingWithCategory) => void;
 	directionsListingId: ListingWithCategory["listing_id"] | null;
+	allRatings?: Record<number, RatingStat>;
+	ratingsLoaded?: boolean;
 }) {
 	if (isLoading) {
 		return (
@@ -44,28 +49,24 @@ export default function ListingList({
 
 	return (
 		<div className="space-y-2">
-			{orderedListings.map((listing, index) => {
-				const isDirectionsActive = directionsListingId === listing.listing_id;
-
-				const card = (
+			{orderedListings.map((listing) => {
+				const stat = allRatings[listing.listing_id];
+				return (
 					<div
-						className="animate-[fadeInUp_240ms_ease-out]"
 						key={listing.listing_id}
+						className="animate-[fadeInUp_240ms_ease-out]"
 					>
 						<ListingCard
 							listing={listing}
 							onDetails={onDetails}
 							onDirections={onDirections}
-							isDirectionsActive={isDirectionsActive}
+							isDirectionsActive={directionsListingId === listing.listing_id}
+							averageRating={stat?.avg}
+							reviewCount={stat?.count}
+							ratingsLoaded={ratingsLoaded}
 						/>
 					</div>
 				);
-
-				if (index === 0 && isDirectionsActive) {
-					return <div key={`featured-${listing.listing_id}`}>{card}</div>;
-				}
-
-				return card;
 			})}
 		</div>
 	);

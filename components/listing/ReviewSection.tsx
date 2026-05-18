@@ -22,6 +22,8 @@ interface ReviewSectionProps {
 	onSubmitSuccess?: () => void;
 	onSubmitError?: (message: string) => void;
 	isDirectionsActive?: boolean;
+	averageRating?: number;
+	reviewCount?: number;
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -34,6 +36,8 @@ export function ReviewSection({
 	onSubmitSuccess,
 	onSubmitError,
 	isDirectionsActive = false,
+	averageRating,
+	reviewCount,
 }: ReviewSectionProps) {
 	const [userRating, setUserRating] = useState(initialRating);
 	const [nickname, setNickname] = useState("");
@@ -84,6 +88,8 @@ export function ReviewSection({
 					onDetails={onDetails}
 					onDirections={onDirections ?? (() => {})}
 					isDirectionsActive={isDirectionsActive}
+					averageRating={averageRating}
+					reviewCount={reviewCount}
 				/>
 			</div>
 

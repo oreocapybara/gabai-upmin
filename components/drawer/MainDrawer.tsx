@@ -13,7 +13,6 @@ import ListingList from "@/components/listing/ListingList";
 import DropdownMenu from "@/components/ui/DropdownMenu";
 import { NotificationBanner } from "@/components/ui/NotificationBanner";
 
-// Moved: hooks/drawer → hooks/common (not drawer-specific)
 import { useMounted } from "@/hooks/common/useMounted";
 import {
 	DRAWER_SNAP_DURATION_MS,
@@ -33,8 +32,9 @@ type SortOption = "default" | "open-first" | "price-asc" | "rating-desc" | "rati
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const PULLER_HEIGHT = 90; //in px
+const PULLER_HEIGHT = 90; // px
 const SNAP_POINTS: SnapPoint[] = [0, 30, 60, 90];
+const VIEW_TRANSITION_MS = 160;
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
@@ -66,15 +66,12 @@ export function MainDrawer({
 	onCategoryChange?: (categoryId: string) => void;
 }) {
 	const mounted = useMounted();
-	const isLoading = false;
 
 	const [view, setView] = useState<DrawerView>("list");
-	const [, setTransitionView] = useState<DrawerView>("list");
 	const [isTransitioning, setIsTransitioning] = useState(false);
-	const [activeListing, setActiveListing] =
-		useState<ListingWithCategory | null>(null);
+	const [activeListing, setActiveListing] = useState<ListingWithCategory | null>(null);
 	const [sortBy, setSortBy] = useState<SortOption>("default");
-	const allRatings = useAllRatings();
+	const { ratings: allRatings, isLoaded: ratingsLoaded } = useAllRatings();
 	const [pendingRating, setPendingRating] = useState(0);
 	const [reviewToast, setReviewToast] = useState<{
 		variant: "success" | "error";
@@ -84,6 +81,16 @@ export function MainDrawer({
 
 	const resetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const lastExternalListingId = useRef<string | number | null>(null);
+
+	// ── View transition helper ─────────────────────────────────────────────────
+
+	const transitionTo = useCallback((next: DrawerView) => {
+		setIsTransitioning(true);
+		setTimeout(() => {
+			setView(next);
+			setIsTransitioning(false);
+		}, VIEW_TRANSITION_MS);
+	}, []);
 
 	// ── Snap-zero callback ─────────────────────────────────────────────────────
 
@@ -102,7 +109,8 @@ export function MainDrawer({
 		[],
 	);
 
-	// ── Drawer drag hook
+	// ── Drawer drag hook ───────────────────────────────────────────────────────
+
 	const {
 		snapState,
 		isDragging,
@@ -153,21 +161,16 @@ export function MainDrawer({
 	const handleOpenDetails = useCallback(
 		(listing: ListingWithCategory) => {
 			setActiveListing(listing);
-			setTransitionView("details");
-			setIsTransitioning(true);
-			window.setTimeout(() => {
-				setView("details");
-				setIsTransitioning(false);
-			}, 160);
+			transitionTo("details");
 			onSelectListing?.(listing);
 		},
-		[onSelectListing],
+		[onSelectListing, transitionTo],
 	);
 
 	const handleDirections = useCallback(
 		(listing: ListingWithCategory) => {
 			onDirections?.(listing);
-			snapTo(0); // close the drawe state during directions
+			snapTo(0);
 		},
 		[onDirections, snapTo],
 	);
@@ -177,14 +180,9 @@ export function MainDrawer({
 		if (lastExternalListingId.current === selectedListing.listing_id) return;
 		lastExternalListingId.current = selectedListing.listing_id;
 		setActiveListing(selectedListing);
-		setTransitionView("details");
-		setIsTransitioning(true);
-		window.setTimeout(() => {
-			setView("details");
-			setIsTransitioning(false);
-		}, 160);
+		transitionTo("details");
 		snapTo(selectionSource === "pin" ? 90 : 0);
-	}, [selectedListing, selectionSource, snapTo]);
+	}, [selectedListing, selectionSource, snapTo, transitionTo]);
 
 	useEffect(() => {
 		if (!selectedListing) {
@@ -195,51 +193,31 @@ export function MainDrawer({
 	useEffect(() => {
 		if (!searchQuery) return;
 		setSortBy("default");
-		setTransitionView("list");
-		setIsTransitioning(true);
-		window.setTimeout(() => {
-			setView("list");
-			setIsTransitioning(false);
-		}, 160);
+		transitionTo("list");
 		setActiveListing(null);
 		onCategoryChange?.("");
 		snapTo(60);
-	}, [onCategoryChange, searchQuery, snapTo]);
+	}, [onCategoryChange, searchQuery, snapTo, transitionTo]);
 
 	const handleGoBack = useCallback(() => {
 		if (view === "reviews") {
 			setPendingRating(0);
-			setTransitionView("details");
-			setIsTransitioning(true);
-			window.setTimeout(() => {
-				setView("details");
-				setIsTransitioning(false);
-			}, 160);
+			transitionTo("details");
 		} else {
-			setTransitionView("list");
-			setIsTransitioning(true);
-			window.setTimeout(() => {
-				setView("list");
-				setIsTransitioning(false);
-			}, 160);
+			transitionTo("list");
 			setActiveListing(null);
 		}
-	}, [view]);
+	}, [view, transitionTo]);
 
 	const handleReviewSuccess = useCallback(() => {
-		setTransitionView("details");
-		setIsTransitioning(true);
-		window.setTimeout(() => {
-			setView("details");
-			setIsTransitioning(false);
-		}, 160);
+		transitionTo("details");
 		setPendingRating(0);
 		setReviewToast({
 			variant: "success",
 			title: "Review submitted",
 			message: "Thanks for sharing your feedback.",
 		});
-	}, []);
+	}, [transitionTo]);
 
 	const handleReviewError = useCallback((message: string) => {
 		setReviewToast({
@@ -258,29 +236,30 @@ export function MainDrawer({
 		(categoryId: string) => {
 			onCategoryChange?.(categoryId);
 			setSortBy("default");
-			setTransitionView("list");
-			setIsTransitioning(true);
-			window.setTimeout(() => {
-				setView("list");
-				setIsTransitioning(false);
-			}, 160);
-			if (snapState === 0) {
-				snapTo(60);
-			}
+			transitionTo("list");
+			if (snapState === 0) snapTo(60);
 		},
-		[onCategoryChange, snapState, snapTo],
+		[onCategoryChange, snapState, snapTo, transitionTo],
 	);
 
 	// ── Derived state ──────────────────────────────────────────────────────────
 
-	const selectedCategoryName = selectedCategoryId
-		? categories.find((c) => String(c.category_id) === selectedCategoryId)
-				?.category_name
-		: undefined;
+	const selectedCategoryName = useMemo(
+		() =>
+			selectedCategoryId
+				? categories.find((c) => String(c.category_id) === selectedCategoryId)
+						?.category_name
+				: undefined,
+		[categories, selectedCategoryId],
+	);
 
-	const filteredListings = selectedCategoryName
-		? listings.filter((l) => l.category.category_name === selectedCategoryName)
-		: listings;
+	const filteredListings = useMemo(
+		() =>
+			selectedCategoryName
+				? listings.filter((l) => l.category.category_name === selectedCategoryName)
+				: listings,
+		[listings, selectedCategoryName],
+	);
 
 	const sortedListings = useMemo(() => {
 		const list = [...filteredListings];
@@ -299,14 +278,14 @@ export function MainDrawer({
 				});
 			case "rating-desc":
 				return list.sort((a, b) => {
-					const aR = allRatings[a.listing_id] ?? -1;
-					const bR = allRatings[b.listing_id] ?? -1;
+					const aR = allRatings[a.listing_id]?.avg ?? -1;
+					const bR = allRatings[b.listing_id]?.avg ?? -1;
 					return bR - aR;
 				});
 			case "rating-asc":
 				return list.sort((a, b) => {
-					const aR = allRatings[a.listing_id] ?? Infinity;
-					const bR = allRatings[b.listing_id] ?? Infinity;
+					const aR = allRatings[a.listing_id]?.avg ?? Infinity;
+					const bR = allRatings[b.listing_id]?.avg ?? Infinity;
 					return aR - bR;
 				});
 			default:
@@ -469,36 +448,24 @@ export function MainDrawer({
 						{view === "list" && (
 							<ListingList
 								listings={sortedListings}
-								isLoading={isLoading}
+								isLoading={false}
 								onDetails={handleOpenDetails}
 								onDirections={handleDirections}
 								directionsListingId={directionsListingId}
+								allRatings={allRatings}
+								ratingsLoaded={ratingsLoaded}
 							/>
 						)}
 
 						{view === "details" && activeListing && (
 							<ListingDetails
 								listing={activeListing}
-								onSeeReviews={() => {
-									setTransitionView("reviews");
-									setIsTransitioning(true);
-									window.setTimeout(() => {
-										setView("reviews");
-										setIsTransitioning(false);
-									}, 160);
-								}}
+								onSeeReviews={() => transitionTo("reviews")}
 								onDirections={handleDirections}
-								isDirectionsActive={
-									directionsListingId === activeListing.listing_id
-								}
+								isDirectionsActive={directionsListingId === activeListing.listing_id}
 								onRate={(rating) => {
 									setPendingRating(rating);
-									setTransitionView("reviews");
-									setIsTransitioning(true);
-									window.setTimeout(() => {
-										setView("reviews");
-										setIsTransitioning(false);
-									}, 160);
+									transitionTo("reviews");
 								}}
 							/>
 						)}
@@ -506,21 +473,14 @@ export function MainDrawer({
 						{view === "reviews" && activeListing && (
 							<ReviewSection
 								listing={activeListing}
-								onDetails={() => {
-									setTransitionView("details");
-									setIsTransitioning(true);
-									window.setTimeout(() => {
-										setView("details");
-										setIsTransitioning(false);
-									}, 160);
-								}}
+								onDetails={() => transitionTo("details")}
 								onDirections={handleDirections}
 								initialRating={pendingRating}
 								onSubmitSuccess={handleReviewSuccess}
 								onSubmitError={handleReviewError}
-								isDirectionsActive={
-									directionsListingId === activeListing.listing_id
-								}
+								isDirectionsActive={directionsListingId === activeListing.listing_id}
+								averageRating={allRatings[activeListing.listing_id]?.avg}
+								reviewCount={allRatings[activeListing.listing_id]?.count}
 							/>
 						)}
 					</div>

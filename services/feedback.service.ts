@@ -10,7 +10,7 @@ export interface Feedback {
 }
 
 export const feedbackService = {
-	async getAllAverageRatings(): Promise<Record<number, number>> {
+	async getAllAverageRatings(): Promise<Record<number, { avg: number; count: number }>> {
 		const supabase = createClient();
 		const { data, error } = await supabase
 			.from("Feedback")
@@ -28,7 +28,7 @@ export const feedbackService = {
 		return Object.fromEntries(
 			Object.entries(totals).map(([id, { sum, count }]) => [
 				Number(id),
-				sum / count,
+				{ avg: sum / count, count },
 			]),
 		);
 	},

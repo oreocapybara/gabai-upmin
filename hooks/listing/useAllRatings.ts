@@ -1,15 +1,24 @@
 import { useEffect, useState } from "react";
 import { feedbackService } from "@/services/feedback.service";
 
-export function useAllRatings(): Record<number, number> {
-	const [ratings, setRatings] = useState<Record<number, number>>({});
+export type RatingStat = { avg: number; count: number };
+
+export function useAllRatings(): { ratings: Record<number, RatingStat>; isLoaded: boolean } {
+	const [ratings, setRatings] = useState<Record<number, RatingStat>>({});
+	const [isLoaded, setIsLoaded] = useState(false);
 
 	useEffect(() => {
 		feedbackService
 			.getAllAverageRatings()
-			.then(setRatings)
-			.catch(() => setRatings({}));
+			.then((data) => {
+				setRatings(data);
+				setIsLoaded(true);
+			})
+			.catch(() => {
+				setRatings({});
+				setIsLoaded(true);
+			});
 	}, []);
 
-	return ratings;
+	return { ratings, isLoaded };
 }

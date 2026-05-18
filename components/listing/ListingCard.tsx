@@ -3,28 +3,8 @@ import Image from "next/image";
 import { Button } from "@/components/ui/Button";
 import DirectionsIcon from "@mui/icons-material/Directions";
 import CancelIcon from "@mui/icons-material/CancelRounded";
-import StarIcon from "@mui/icons-material/Star";
-import StarHalfIcon from "@mui/icons-material/StarHalf";
-import StarBorderIcon from "@mui/icons-material/StarBorder";
-import { cn, formatCategoryName, formatPriceRange, isListingOpen, resolveStarBreakdown } from "@/lib/utils";
-import { useFeedbacks } from "@/hooks/listing/useFeedback";
-
-// ─── StaticStars ──────────────────────────────────────────────────────────────
-
-function StaticStars({ rating }: { rating: number }) {
-	const { full, hasHalf, empty } = resolveStarBreakdown(rating);
-	return (
-		<div className="flex items-center gap-0.5">
-			{Array.from({ length: full }).map((_, i) => (
-				<StarIcon key={`full-${i}`} fontSize="small" className="text-content-notice !text-[14px]" />
-			))}
-			{hasHalf && <StarHalfIcon fontSize="small" className="text-content-notice !text-[14px]" />}
-			{Array.from({ length: empty }).map((_, i) => (
-				<StarBorderIcon key={`empty-${i}`} fontSize="small" className="text-content-notice opacity-30 !text-[14px]" />
-			))}
-		</div>
-	);
-}
+import { cn, formatCategoryName, formatPriceRange, isListingOpen } from "@/lib/utils";
+import { StaticStars } from "@/components/listing/StaticStars";
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
@@ -33,18 +13,19 @@ export default function ListingCard({
 	onDetails,
 	onDirections,
 	isDirectionsActive = false,
+	averageRating,
+	reviewCount,
+	ratingsLoaded = false,
 }: {
 	listing: ListingWithCategory;
 	onDetails: (listing: ListingWithCategory) => void;
 	onDirections: (listing: ListingWithCategory) => void;
 	isDirectionsActive?: boolean;
+	averageRating?: number;
+	reviewCount?: number;
+	ratingsLoaded?: boolean;
 }) {
 	const open = isListingOpen(listing.opening_hours, listing.closing_hours);
-	const { feedbacks, isLoading } = useFeedbacks(listing.listing_id);
-
-	const averageRating = feedbacks.length
-		? feedbacks.reduce((sum, f) => sum + f.rating, 0) / feedbacks.length
-		: 0;
 
 	return (
 		<div className="border-b border-stroke-tertiary bg-surface-secondary self-stretch overflow-clip">
@@ -85,16 +66,16 @@ export default function ListingCard({
 						</div>
 
 						{/* Rating + price row */}
-						{isLoading ? (
+						{!ratingsLoaded ? (
 							<div className="h-3 w-20 rounded-full bg-gray-200 animate-pulse mt-0.5" />
-						) : feedbacks.length > 0 ? (
+						) : (reviewCount ?? 0) > 0 ? (
 							<div className="flex items-center gap-1 mt-0.5">
 								<span className="text-xs font-bold text-content-primary leading-none">
-									{averageRating.toFixed(1)}
+									{(averageRating ?? 0).toFixed(1)}
 								</span>
-								<StaticStars rating={averageRating} />
+								<StaticStars rating={averageRating ?? 0} iconClassName="!text-[14px]" />
 								<span className="text-content-tertiary text-xs leading-none">
-									({feedbacks.length})
+									({reviewCount})
 								</span>
 								{formatPriceRange(listing.price_min, listing.price_max) && (
 									<>
