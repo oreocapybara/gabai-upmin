@@ -49,6 +49,8 @@ export function MainDrawer({
 	searchQuery,
 	selectionSource,
 	initialCategoryId = "",
+	selectedCategoryId = "",
+	onCategoryChange,
 }: {
 	listings: ListingWithCategory[];
 	categories: Category[];
@@ -60,6 +62,8 @@ export function MainDrawer({
 	searchQuery?: string;
 	selectionSource?: "pin" | "list" | null;
 	initialCategoryId?: string;
+	selectedCategoryId?: string;
+	onCategoryChange?: (categoryId: string) => void;
 }) {
 	const mounted = useMounted();
 	const isLoading = false;
@@ -69,7 +73,6 @@ export function MainDrawer({
 	const [isTransitioning, setIsTransitioning] = useState(false);
 	const [activeListing, setActiveListing] =
 		useState<ListingWithCategory | null>(null);
-	const [selectedCategoryId, setSelectedCategoryId] = useState<string>(initialCategoryId);
 	const [sortBy, setSortBy] = useState<SortOption>("default");
 	const allRatings = useAllRatings();
 	const [pendingRating, setPendingRating] = useState(0);
@@ -199,9 +202,9 @@ export function MainDrawer({
 			setIsTransitioning(false);
 		}, 160);
 		setActiveListing(null);
-		setSelectedCategoryId("");
+		onCategoryChange?.("");
 		snapTo(60);
-	}, [searchQuery, snapTo]);
+	}, [onCategoryChange, searchQuery, snapTo]);
 
 	const handleGoBack = useCallback(() => {
 		if (view === "reviews") {
@@ -253,7 +256,7 @@ export function MainDrawer({
 
 	const handleCategoryChange = useCallback(
 		(categoryId: string) => {
-			setSelectedCategoryId(categoryId);
+			onCategoryChange?.(categoryId);
 			setSortBy("default");
 			setTransitionView("list");
 			setIsTransitioning(true);
@@ -265,7 +268,7 @@ export function MainDrawer({
 				snapTo(60);
 			}
 		},
-		[snapState, snapTo],
+		[onCategoryChange, snapState, snapTo],
 	);
 
 	// ── Derived state ──────────────────────────────────────────────────────────
