@@ -13,7 +13,6 @@ import ListingList from "@/components/listing/ListingList";
 import DropdownMenu from "@/components/ui/DropdownMenu";
 import { NotificationBanner } from "@/components/ui/NotificationBanner";
 
-// Moved: hooks/drawer → hooks/common (not drawer-specific)
 import { useMounted } from "@/hooks/common/useMounted";
 import {
 	DRAWER_SNAP_DURATION_MS,
@@ -33,8 +32,9 @@ type SortOption = "default" | "open-first" | "price-asc" | "rating-desc" | "rati
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const PULLER_HEIGHT = 86;
+const PULLER_HEIGHT = 90; // px
 const SNAP_POINTS: SnapPoint[] = [0, 30, 60, 90];
+const VIEW_TRANSITION_MS = 160;
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
@@ -49,6 +49,8 @@ export function MainDrawer({
 	searchQuery,
 	selectionSource,
 	initialCategoryId = "",
+	selectedCategoryId = "",
+	onCategoryChange,
 }: {
 	listings: ListingWithCategory[];
 	categories: Category[];
@@ -60,18 +62,16 @@ export function MainDrawer({
 	searchQuery?: string;
 	selectionSource?: "pin" | "list" | null;
 	initialCategoryId?: string;
+	selectedCategoryId?: string;
+	onCategoryChange?: (categoryId: string) => void;
 }) {
 	const mounted = useMounted();
-	const isLoading = false;
 
 	const [view, setView] = useState<DrawerView>("list");
-	const [, setTransitionView] = useState<DrawerView>("list");
 	const [isTransitioning, setIsTransitioning] = useState(false);
-	const [activeListing, setActiveListing] =
-		useState<ListingWithCategory | null>(null);
-	const [selectedCategoryId, setSelectedCategoryId] = useState<string>(initialCategoryId);
+	const [activeListing, setActiveListing] = useState<ListingWithCategory | null>(null);
 	const [sortBy, setSortBy] = useState<SortOption>("default");
-	const allRatings = useAllRatings();
+	const { ratings: allRatings, isLoaded: ratingsLoaded } = useAllRatings();
 	const [pendingRating, setPendingRating] = useState(0);
 	const [reviewToast, setReviewToast] = useState<{
 		variant: "success" | "error";
@@ -81,6 +81,16 @@ export function MainDrawer({
 
 	const resetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const lastExternalListingId = useRef<string | number | null>(null);
+
+	// ── View transition helper ─────────────────────────────────────────────────
+
+	const transitionTo = useCallback((next: DrawerView) => {
+		setIsTransitioning(true);
+		setTimeout(() => {
+			setView(next);
+			setIsTransitioning(false);
+		}, VIEW_TRANSITION_MS);
+	}, []);
 
 	// ── Snap-zero callback ─────────────────────────────────────────────────────
 
@@ -99,7 +109,8 @@ export function MainDrawer({
 		[],
 	);
 
-	// ── Drawer drag hook
+	// ── Drawer drag hook ───────────────────────────────────────────────────────
+
 	const {
 		snapState,
 		isDragging,
@@ -150,21 +161,16 @@ export function MainDrawer({
 	const handleOpenDetails = useCallback(
 		(listing: ListingWithCategory) => {
 			setActiveListing(listing);
-			setTransitionView("details");
-			setIsTransitioning(true);
-			window.setTimeout(() => {
-				setView("details");
-				setIsTransitioning(false);
-			}, 160);
+			transitionTo("details");
 			onSelectListing?.(listing);
 		},
-		[onSelectListing],
+		[onSelectListing, transitionTo],
 	);
 
 	const handleDirections = useCallback(
 		(listing: ListingWithCategory) => {
 			onDirections?.(listing);
-			snapTo(0); // close the drawe state during directions
+			snapTo(0);
 		},
 		[onDirections, snapTo],
 	);
@@ -174,14 +180,9 @@ export function MainDrawer({
 		if (lastExternalListingId.current === selectedListing.listing_id) return;
 		lastExternalListingId.current = selectedListing.listing_id;
 		setActiveListing(selectedListing);
-		setTransitionView("details");
-		setIsTransitioning(true);
-		window.setTimeout(() => {
-			setView("details");
-			setIsTransitioning(false);
-		}, 160);
-		snapTo(selectionSource === "pin" ? 60 : 0);
-	}, [selectedListing, selectionSource, snapTo]);
+		transitionTo("details");
+		snapTo(selectionSource === "pin" ? 90 : 0);
+	}, [selectedListing, selectionSource, snapTo, transitionTo]);
 
 	useEffect(() => {
 		if (!selectedListing) {
@@ -192,50 +193,31 @@ export function MainDrawer({
 	useEffect(() => {
 		if (!searchQuery) return;
 		setSortBy("default");
-		setTransitionView("list");
-		setIsTransitioning(true);
-		window.setTimeout(() => {
-			setView("list");
-			setIsTransitioning(false);
-		}, 160);
+		transitionTo("list");
 		setActiveListing(null);
-		setSelectedCategoryId("");
+		onCategoryChange?.("");
 		snapTo(60);
-	}, [searchQuery, snapTo]);
+	}, [onCategoryChange, searchQuery, snapTo, transitionTo]);
 
 	const handleGoBack = useCallback(() => {
 		if (view === "reviews") {
-			setTransitionView("details");
-			setIsTransitioning(true);
-			window.setTimeout(() => {
-				setView("details");
-				setIsTransitioning(false);
-			}, 160);
+			setPendingRating(0);
+			transitionTo("details");
 		} else {
-			setTransitionView("list");
-			setIsTransitioning(true);
-			window.setTimeout(() => {
-				setView("list");
-				setIsTransitioning(false);
-			}, 160);
+			transitionTo("list");
 			setActiveListing(null);
 		}
-	}, [view]);
+	}, [view, transitionTo]);
 
 	const handleReviewSuccess = useCallback(() => {
-		setTransitionView("details");
-		setIsTransitioning(true);
-		window.setTimeout(() => {
-			setView("details");
-			setIsTransitioning(false);
-		}, 160);
+		transitionTo("details");
 		setPendingRating(0);
 		setReviewToast({
 			variant: "success",
 			title: "Review submitted",
 			message: "Thanks for sharing your feedback.",
 		});
-	}, []);
+	}, [transitionTo]);
 
 	const handleReviewError = useCallback((message: string) => {
 		setReviewToast({
@@ -252,31 +234,32 @@ export function MainDrawer({
 
 	const handleCategoryChange = useCallback(
 		(categoryId: string) => {
-			setSelectedCategoryId(categoryId);
+			onCategoryChange?.(categoryId);
 			setSortBy("default");
-			setTransitionView("list");
-			setIsTransitioning(true);
-			window.setTimeout(() => {
-				setView("list");
-				setIsTransitioning(false);
-			}, 160);
-			if (snapState === 0) {
-				snapTo(30);
-			}
+			transitionTo("list");
+			if (snapState === 0) snapTo(60);
 		},
-		[snapState, snapTo],
+		[onCategoryChange, snapState, snapTo, transitionTo],
 	);
 
 	// ── Derived state ──────────────────────────────────────────────────────────
 
-	const selectedCategoryName = selectedCategoryId
-		? categories.find((c) => String(c.category_id) === selectedCategoryId)
-				?.category_name
-		: undefined;
+	const selectedCategoryName = useMemo(
+		() =>
+			selectedCategoryId
+				? categories.find((c) => String(c.category_id) === selectedCategoryId)
+						?.category_name
+				: undefined,
+		[categories, selectedCategoryId],
+	);
 
-	const filteredListings = selectedCategoryName
-		? listings.filter((l) => l.category.category_name === selectedCategoryName)
-		: listings;
+	const filteredListings = useMemo(
+		() =>
+			selectedCategoryName
+				? listings.filter((l) => l.category.category_name === selectedCategoryName)
+				: listings,
+		[listings, selectedCategoryName],
+	);
 
 	const sortedListings = useMemo(() => {
 		const list = [...filteredListings];
@@ -295,14 +278,14 @@ export function MainDrawer({
 				});
 			case "rating-desc":
 				return list.sort((a, b) => {
-					const aR = allRatings[a.listing_id] ?? -1;
-					const bR = allRatings[b.listing_id] ?? -1;
+					const aR = allRatings[a.listing_id]?.avg ?? -1;
+					const bR = allRatings[b.listing_id]?.avg ?? -1;
 					return bR - aR;
 				});
 			case "rating-asc":
 				return list.sort((a, b) => {
-					const aR = allRatings[a.listing_id] ?? Infinity;
-					const bR = allRatings[b.listing_id] ?? Infinity;
+					const aR = allRatings[a.listing_id]?.avg ?? Infinity;
+					const bR = allRatings[b.listing_id]?.avg ?? Infinity;
 					return aR - bR;
 				});
 			default:
@@ -382,11 +365,11 @@ export function MainDrawer({
 
 					<Box
 						className="flex w-full justify-between items-center px-4"
-						onPointerDown={(e) => e.stopPropagation()}
+						onPointerDown={(e) => { if (snapState !== 0) e.stopPropagation(); }}
 					>
 						<DropdownMenu
 							categories={categories}
-							menuPlacement={snapState === 0 ? "top" : "bottom"}
+							menuPlacement={snapState <= 30 ? "top" : "bottom"}
 							onCategoryChange={handleCategoryChange}
 							defaultValue={initialCategoryId}
 						/>
@@ -407,8 +390,13 @@ export function MainDrawer({
 
 				{/* ── Scrollable content ── */}
 				<Box
-					className="bg-surface-primary px-4 pb-4 overflow-y-auto h-full border-l-2 border-r-2 border-stroke-secondary"
-					style={{ minHeight: 100, pointerEvents: "auto" }}
+					className="bg-surface-primary pb-4 overflow-y-auto overflow-x-hidden h-full border-l-2 border-r-2 border-stroke-secondary"
+					style={{
+						minHeight: 100,
+						pointerEvents: "auto",
+						paddingLeft: "min(1rem, 4vw)",
+						paddingRight: "min(1rem, 4vw)",
+					}}
 				>
 					<div
 						className={
@@ -418,48 +406,25 @@ export function MainDrawer({
 								: "opacity-100 translate-y-0")
 						}
 					>
-						{/* ── Sort + rating chips — sticky float, slides in when drawer opens ── */}
+						{/* ── Sort chips — sticky single row, slides in when drawer opens ── */}
 						{view === "list" && (
 							<div
 								className={[
 									"sticky top-0 z-10 -mx-4 px-4 bg-surface-primary",
 									"overflow-hidden transition-all duration-300 ease-out",
 									snapState >= 60
-										? "max-h-[88px] opacity-100 pt-3 pb-2 border-b border-stroke-tertiary"
+										? "max-h-[52px] opacity-100 pt-3 pb-2 border-b border-stroke-tertiary"
 										: "max-h-0 opacity-0 pointer-events-none",
 								].join(" ")}
 							>
-								{/* Sort */}
-								<div className="flex gap-2 overflow-x-auto scrollbar-none">
+								<div className="flex gap-2 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
 									{(
 										[
-											{ key: "default",    label: "A – Z"      },
-											{ key: "open-first", label: "Open first" },
-											{ key: "price-asc",  label: "Price ↑"   },
-										] as { key: SortOption; label: string }[]
-									).map(({ key, label }) => (
-										<button
-											key={key}
-											onClick={() => setSortBy(key)}
-											className={[
-												"shrink-0 rounded-full px-3 py-1 text-xs font-medium",
-												"border transition-colors duration-150",
-												sortBy === key
-													? "bg-surface-brand border-surface-brand text-content-inverse-primary"
-													: "bg-surface-primary border-stroke-secondary text-content-secondary hover:bg-surface-hover",
-											].join(" ")}
-										>
-											{label}
-										</button>
-									))}
-								</div>
-
-								{/* Rating sort */}
-								<div className="flex gap-2 overflow-x-auto scrollbar-none mt-2">
-									{(
-										[
-											{ key: "rating-desc", label: "Rating ↓" },
-											{ key: "rating-asc",  label: "Rating ↑" },
+											{ key: "default",     label: "A – Z"      },
+											{ key: "open-first",  label: "Open first" },
+											{ key: "price-asc",   label: "Price ↑"   },
+											{ key: "rating-desc", label: "Rating ↓"  },
+											{ key: "rating-asc",  label: "Rating ↑"  },
 										] as { key: SortOption; label: string }[]
 									).map(({ key, label }) => (
 										<button
@@ -483,36 +448,24 @@ export function MainDrawer({
 						{view === "list" && (
 							<ListingList
 								listings={sortedListings}
-								isLoading={isLoading}
+								isLoading={false}
 								onDetails={handleOpenDetails}
 								onDirections={handleDirections}
 								directionsListingId={directionsListingId}
+								allRatings={allRatings}
+								ratingsLoaded={ratingsLoaded}
 							/>
 						)}
 
 						{view === "details" && activeListing && (
 							<ListingDetails
 								listing={activeListing}
-								onSeeReviews={() => {
-									setTransitionView("reviews");
-									setIsTransitioning(true);
-									window.setTimeout(() => {
-										setView("reviews");
-										setIsTransitioning(false);
-									}, 160);
-								}}
+								onSeeReviews={() => transitionTo("reviews")}
 								onDirections={handleDirections}
-								isDirectionsActive={
-									directionsListingId === activeListing.listing_id
-								}
+								isDirectionsActive={directionsListingId === activeListing.listing_id}
 								onRate={(rating) => {
 									setPendingRating(rating);
-									setTransitionView("reviews");
-									setIsTransitioning(true);
-									window.setTimeout(() => {
-										setView("reviews");
-										setIsTransitioning(false);
-									}, 160);
+									transitionTo("reviews");
 								}}
 							/>
 						)}
@@ -520,21 +473,14 @@ export function MainDrawer({
 						{view === "reviews" && activeListing && (
 							<ReviewSection
 								listing={activeListing}
-								onDetails={() => {
-									setTransitionView("details");
-									setIsTransitioning(true);
-									window.setTimeout(() => {
-										setView("details");
-										setIsTransitioning(false);
-									}, 160);
-								}}
+								onDetails={() => transitionTo("details")}
 								onDirections={handleDirections}
 								initialRating={pendingRating}
 								onSubmitSuccess={handleReviewSuccess}
 								onSubmitError={handleReviewError}
-								isDirectionsActive={
-									directionsListingId === activeListing.listing_id
-								}
+								isDirectionsActive={directionsListingId === activeListing.listing_id}
+								averageRating={allRatings[activeListing.listing_id]?.avg}
+								reviewCount={allRatings[activeListing.listing_id]?.count}
 							/>
 						)}
 					</div>
@@ -545,7 +491,7 @@ export function MainDrawer({
 				<NotificationBanner
 					variant={reviewToast.variant}
 					title={reviewToast.title}
-					className="fixed top-20 right-4 z-[2200]"
+					className="fixed top-[70px] right-4 z-[2500]"
 					autoHideMs={3500}
 					onDismiss={() => setReviewToast(null)}
 				>

@@ -14,7 +14,8 @@ import StarIcon from "@mui/icons-material/Star";
 import ExploreIcon from "@mui/icons-material/Explore";
 import { VisitorCounter } from "@/components/landing/VisitorCounter";
 
-const SLIDES = [
+// Used for the content of the cards
+const SLIDES = [ 
 	{
 		title: "Get directions",
 		description: "Find the fastest way to your destination with just a tap.",
@@ -87,9 +88,9 @@ export default function Page() {
 	};
 
 	return (
-		<main className="w-screen flex min-h-svh flex-col bg-surface-brand">
+		<main className="w-screen flex h-screen flex-col overflow-hidden bg-surface-brand">
 			{/* ── Hero ── brand background extends from the Navbar */}
-			<div className="flex flex-1 flex-col items-center justify-center gap-m px-xl pb-2xl pt-16">
+			<div className="flex flex-1 flex-col items-center justify-center gap-m px-xl pb-2xl pt-20">
 				<div className="overflow-hidden rounded-full shadow-xl ring-4 ring-white-40">
 					<Image
 						src="/logo.svg"
@@ -119,7 +120,7 @@ export default function Page() {
 			</div>
 
 			{/* ── Content sheet ── floats up from the bottom */}
-			<div className="rounded-t-[32px] bg-surface-primary px-xl pt-2xl pb-10 flex flex-col gap-xl shadow-[0_-8px_32px_rgba(0,0,0,0.15)]">
+			<div className="rounded-t-[32px] bg-surface-primary px-xl pt-2xl pb-10 flex flex-col shadow-[0_-8px_32px_rgba(0,0,0,0.15)]">
 				{/* Feature carousel */}
 				<div>
 					<div
@@ -190,53 +191,59 @@ export default function Page() {
 						<div className="h-px flex-1 bg-stroke-tertiary" />
 					</div>
 
-					<div className="flex flex-wrap justify-center gap-2">
-						{categories === null
-							? Array.from({ length: 5 }).map((_, i) => (
-									<div
-										key={i}
-										className="h-8 w-20 animate-pulse rounded-2xl bg-stroke-secondary"
-									/>
-								))
-							: categories.map((cat) => (
-									<Button
-										key={cat.category_name}
-										variant="secondary"
-										size="sm"
-										className="text-s font-medium text-content-tertiary"
-										onClick={() =>
-											router.push(
-												`/?category=${encodeURIComponent(cat.category_name)}`,
-											)
-										}
-									>
-										{formatCategoryName(cat.category_name)}
-									</Button>
-								))}
+					<div className="relative">
+						<div className="overflow-x-auto scroll-smooth [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+							<div className="flex flex-col flex-wrap gap-2 h-[72px] py-0.5 pr-8">
+								{categories === null
+									? Array.from({ length: 10 }).map((_, i) => (
+											<div
+												key={i}
+												className="h-8 w-20 shrink-0 animate-pulse rounded-2xl bg-stroke-secondary"
+											/>
+										))
+									: categories.map((cat) => (
+											<Button
+												key={cat.category_name}
+												variant="secondary"
+												size="sm"
+												className="text-s font-medium text-content-tertiary shrink-0"
+												onClick={() =>
+													router.push(
+														`/?category=${encodeURIComponent(cat.category_name)}`,
+													)
+												}
+											>
+												{formatCategoryName(cat.category_name)}
+											</Button>
+										))}
+							</div>
+						</div>
+						<div className="pointer-events-none absolute right-0 top-0 h-full w-12 bg-gradient-to-l from-surface-primary to-transparent" />
 					</div>
 				</div>
 
 				{/* Primary CTA */}
-				<Button
-					variant="default"
-					size="default"
-					className="w-full"
-					trailingIcon={<NearMeIcon sx={{ fontSize: 18 }} />}
-					onClick={() => router.push("/")}
-				>
-					Explore Map
-				</Button>
-
-				{/* Admin link */}
-				<p className="text-center text-s text-content-tertiary">
-					Are you an admin?{" "}
-					<Link
-						href="/login"
-						className="font-medium text-content-link underline underline-offset-4 hover:text-content-link-hover active:text-content-link-pressed"
+				<div className="flex flex-col gap-2">
+					<Button
+						variant="default"
+						size="default"
+						className="w-full"
+						trailingIcon={<NearMeIcon sx={{ fontSize: 18 }} />}
+						onClick={() => router.push("/")}
 					>
-						Log in
-					</Link>
-				</p>
+						Explore Map
+					</Button>
+					{/* Admin link */}
+					<p className="text-center text-s text-content-tertiary">
+						Are you an admin?{" "}
+						<Link
+							href="/login"
+							className="font-medium text-content-link underline underline-offset-4 hover:text-content-link-hover active:text-content-link-pressed"
+						>
+							Log in
+						</Link>
+					</p>
+				</div>
 			</div>
 		</main>
 	);

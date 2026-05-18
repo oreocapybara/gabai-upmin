@@ -22,6 +22,7 @@ interface MapProps {
 	selectedListingId?: ListingId | null;
 	onSelectListing?: (listing: ListingWithCategory) => void;
 	drawerSnapState?: number;
+	selectedCategoryName?: string;
 }
 
 type ListingId = ListingWithCategory["listing_id"];
@@ -32,6 +33,7 @@ export default function Map({
 	selectedListingId,
 	onSelectListing,
 	drawerSnapState = 0,
+	selectedCategoryName,
 }: MapProps) {
 	const [isHydrated, setIsHydrated] = useState(false);
 	const [showMapError, setShowMapError] = useState(false);
@@ -107,11 +109,14 @@ export default function Map({
 	const clusterer = useClusterer(map, !isRouteActive);
 
 	const markersToRender = useMemo(() => {
-		if (isRouteActive && directionsListing) {
-			return [directionsListing];
+		if (isRouteActive && directionsListing) return [directionsListing];
+		if (selectedCategoryName) {
+			return initialListings.filter(
+				(l) => l.category?.category_name === selectedCategoryName,
+			);
 		}
 		return initialListings;
-	}, [directionsListing, initialListings, isRouteActive]);
+	}, [directionsListing, initialListings, isRouteActive, selectedCategoryName]);
 
 	// Use directions hook to render route when destination and user position are available
 	useDirections({
@@ -172,7 +177,7 @@ export default function Map({
 					"absolute right-4 z-50 h-10 w-10 shadow-md transition-all duration-300",
 					isDrawerOpen
 						? "opacity-0 pointer-events-none bottom-4"
-						: "opacity-100 bottom-[94px]",
+						: "opacity-100 bottom-[98px]",
 				)}
 				onClick={handleLocate}
 				disabled={isLocateDisabled}

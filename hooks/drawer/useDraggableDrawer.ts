@@ -111,16 +111,15 @@ export function useDraggableDrawer({
 
 	const onPointerDown = useCallback(
 		(e: React.PointerEvent<HTMLDivElement>) => {
-			// Only drag from the handle zone — not from interactive children.
-			// The interactive row uses stopPropagation, but this is a second
-			// guard: only capture if the target is the puller itself or the pill.
 			const target = e.target as HTMLElement;
 			const isPullerRoot = target === e.currentTarget;
 			const isPill =
 				target.dataset.dragHandle !== undefined ||
 				target.closest("[data-drag-handle]");
 
-			if (!isPullerRoot && !isPill) return;
+			// When closed, the entire puller surface is a drag target.
+			// When open, restrict to the pill/root to avoid hijacking interactive children.
+			if (snapRef.current !== 0 && !isPullerRoot && !isPill) return;
 
 			e.currentTarget.setPointerCapture(e.pointerId);
 			activePointerId.current = e.pointerId;

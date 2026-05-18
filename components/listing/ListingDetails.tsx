@@ -4,18 +4,16 @@ import Image from "next/image";
 import { Button } from "@/components/ui/Button";
 import { StarRating } from "@/components/ui/StarRating";
 import DirectionsIcon from "@mui/icons-material/Directions";
-import StarIcon from "@mui/icons-material/Star";
-import StarHalfIcon from "@mui/icons-material/StarHalf";
 import StarBorderIcon from "@mui/icons-material/StarBorder";
 import CancelIcon from "@mui/icons-material/CancelRounded";
 import type { ListingWithCategory } from "@/types";
 import { useFeedbacks } from "@/hooks/listing/useFeedback";
+import { StaticStars } from "@/components/listing/StaticStars";
 import {
 	cn,
 	formatCategoryName,
 	formatPriceRange,
 	isListingOpen,
-	resolveStarBreakdown,
 } from "@/lib/utils";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -29,37 +27,6 @@ interface ListingDetailsProps {
 }
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
-
-function StaticStars({
-	rating,
-	size = "small",
-}: {
-	rating: number;
-	size?: "small" | "inherit";
-}) {
-	const { full, hasHalf, empty } = resolveStarBreakdown(rating);
-	return (
-		<div className="flex items-center gap-0.5">
-			{Array.from({ length: full }).map((_, i) => (
-				<StarIcon
-					key={`full-${i}`}
-					fontSize={size}
-					className="text-content-notice"
-				/>
-			))}
-			{hasHalf && (
-				<StarHalfIcon fontSize={size} className="text-content-notice" />
-			)}
-			{Array.from({ length: empty }).map((_, i) => (
-				<StarBorderIcon
-					key={`empty-${i}`}
-					fontSize={size}
-					className="text-content-notice opacity-30"
-				/>
-			))}
-		</div>
-	);
-}
 
 function ReviewSkeleton() {
 	return (
@@ -87,6 +54,7 @@ function MetaPill({ label }: { label: string }) {
 
 export function ListingDetails({
 	listing,
+	onSeeReviews,
 	onDirections,
 	onRate,
 	isDirectionsActive = false,
@@ -133,15 +101,21 @@ export function ListingDetails({
 
 				{/* Aggregate rating row */}
 				<div className="flex items-center gap-2 mb-3">
-					<span className="text-content-primary font-bold text-m leading-none">
-						{ratingLabel}
-					</span>
-					<StaticStars rating={averageRating} />
-					{!isLoading && feedbacks.length > 0 && (
-						<span className="text-content-tertiary text-s">
-							({feedbacks.length}{" "}
-							{feedbacks.length === 1 ? "review" : "reviews"})
-						</span>
+					{isLoading ? (
+						<div className="h-4 w-32 rounded-full bg-gray-200 animate-pulse" />
+					) : feedbacks.length > 0 ? (
+						<>
+							<span className="text-content-primary font-bold text-m leading-none">
+								{ratingLabel}
+							</span>
+							<StaticStars rating={averageRating} />
+							<span className="text-content-tertiary text-s">
+								({feedbacks.length}{" "}
+								{feedbacks.length === 1 ? "review" : "reviews"})
+							</span>
+						</>
+					) : (
+						<span className="text-content-tertiary text-s">No reviews yet</span>
 					)}
 				</div>
 
@@ -192,15 +166,18 @@ export function ListingDetails({
 			</div>
 
 			{/* ── Reviews ────────────────────────────────────────────────────────── */}
-			<div>
+			<div className="pb-2">
 				<div className="flex items-center justify-between mb-3">
 					<h6 className="font-display font-semibold text-content-primary">
 						Recent reviews
 					</h6>
 					{!isLoading && feedbacks.length > 0 && (
-						<span className="text-s text-content-tertiary">
-							{feedbacks.length} total
-						</span>
+						<button
+							onClick={onSeeReviews}
+							className="text-s text-content-brand font-medium hover:underline"
+						>
+							Write a review
+						</button>
 					)}
 				</div>
 
@@ -260,6 +237,12 @@ export function ListingDetails({
 							<p className="text-content-tertiary text-s mt-0.5">
 								Be the first to rate this place!
 							</p>
+							<button
+								onClick={onSeeReviews}
+								className="mt-3 text-s text-content-brand font-medium hover:underline"
+							>
+								Write a review
+							</button>
 						</div>
 					)}
 				</div>

@@ -30,6 +30,17 @@ export function MapWithDrawer({
 	const initialCategoryId = categoryParam
 		? String(categories.find((c) => c.category_name === categoryParam)?.category_id ?? "")
 		: "";
+
+	const [selectedCategoryId, setSelectedCategoryId] = useState<string>(initialCategoryId);
+
+	const selectedCategoryName = useMemo(
+		() => categories.find((c) => String(c.category_id) === selectedCategoryId)?.category_name ?? "",
+		[categories, selectedCategoryId],
+	);
+
+	const handleCategoryChange = useCallback((categoryId: string) => {
+		setSelectedCategoryId(categoryId);
+	}, []);
 	const filteredListings = useMemo(() => {
 		if (!searchQuery) return initialListings;
 		const matches = initialListings.filter((listing) => {
@@ -94,6 +105,7 @@ export function MapWithDrawer({
 				selectedListingId={selectedListing?.listing_id ?? null}
 				onSelectListing={handleSelectListing}
 				drawerSnapState={drawerSnapState}
+				selectedCategoryName={selectedCategoryName}
 			/>
 			<MainDrawer
 				listings={filteredListings}
@@ -106,6 +118,8 @@ export function MapWithDrawer({
 				searchQuery={searchQuery}
 				selectionSource={selectionSource}
 				initialCategoryId={initialCategoryId}
+				selectedCategoryId={selectedCategoryId}
+				onCategoryChange={handleCategoryChange}
 			/>
 		</>
 	);

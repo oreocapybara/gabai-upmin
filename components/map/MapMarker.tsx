@@ -10,7 +10,6 @@ export interface MapMarkerProps {
 	isSelected?: boolean;
 	onSelect?: (listing: ListingWithCategory) => void;
 	clusterer?: MarkerClusterer | null;
-	isHidden?: boolean;
 }
 
 export const MapMarker = (props: MapMarkerProps) => {

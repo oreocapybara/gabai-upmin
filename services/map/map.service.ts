@@ -16,10 +16,11 @@ export async function initGoogleMap(
 	return new Map(container, {
 		center: { lat: 7.08577271110286, lng: 125.4853479996858 },
 		zoom: 17,
-		maxZoom:18,
+		maxZoom: 18,
 		minZoom: 13,
-		tilt: 45, 
+		tilt: 45,
 		mapId: process.env.NEXT_PUBLIC_MAP_ID,
 		disableDefaultUI: true,
+		gestureHandling: "greedy",
 	});
 }
