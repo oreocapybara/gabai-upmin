@@ -346,7 +346,6 @@ export function MainDrawer({
 					disableAutoFocus: true,
 					disableEnforceFocus: true,
 					disableRestoreFocus: true,
-					disableScrollLock: true,
 					style: { pointerEvents: "none" },
 				}}
 				sx={{
@@ -383,11 +382,11 @@ export function MainDrawer({
 
 					<Box
 						className="flex w-full justify-between items-center px-4"
-						onPointerDown={(e) => e.stopPropagation()}
+						onPointerDown={(e) => { if (snapState !== 0) e.stopPropagation(); }}
 					>
 						<DropdownMenu
 							categories={categories}
-							menuPlacement={snapState === 0 ? "top" : "bottom"}
+							menuPlacement={snapState <= 30 ? "top" : "bottom"}
 							onCategoryChange={handleCategoryChange}
 							defaultValue={initialCategoryId}
 						/>
@@ -408,8 +407,13 @@ export function MainDrawer({
 
 				{/* ── Scrollable content ── */}
 				<Box
-					className="bg-surface-primary px-4 pb-4 overflow-y-auto h-full border-l-2 border-r-2 border-stroke-secondary"
-					style={{ minHeight: 100, pointerEvents: "auto" }}
+					className="bg-surface-primary pb-4 overflow-y-auto overflow-x-hidden h-full border-l-2 border-r-2 border-stroke-secondary"
+					style={{
+						minHeight: 100,
+						pointerEvents: "auto",
+						paddingLeft: "min(1rem, 4vw)",
+						paddingRight: "min(1rem, 4vw)",
+					}}
 				>
 					<div
 						className={
@@ -419,48 +423,25 @@ export function MainDrawer({
 								: "opacity-100 translate-y-0")
 						}
 					>
-						{/* ── Sort + rating chips — sticky float, slides in when drawer opens ── */}
+						{/* ── Sort chips — sticky single row, slides in when drawer opens ── */}
 						{view === "list" && (
 							<div
 								className={[
 									"sticky top-0 z-10 -mx-4 px-4 bg-surface-primary",
 									"overflow-hidden transition-all duration-300 ease-out",
 									snapState >= 60
-										? "max-h-[88px] opacity-100 pt-3 pb-2 border-b border-stroke-tertiary"
+										? "max-h-[52px] opacity-100 pt-3 pb-2 border-b border-stroke-tertiary"
 										: "max-h-0 opacity-0 pointer-events-none",
 								].join(" ")}
 							>
-								{/* Sort */}
-								<div className="flex gap-2 overflow-x-auto scrollbar-none">
+								<div className="flex gap-2 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
 									{(
 										[
-											{ key: "default",    label: "A – Z"      },
-											{ key: "open-first", label: "Open first" },
-											{ key: "price-asc",  label: "Price ↑"   },
-										] as { key: SortOption; label: string }[]
-									).map(({ key, label }) => (
-										<button
-											key={key}
-											onClick={() => setSortBy(key)}
-											className={[
-												"shrink-0 rounded-full px-3 py-1 text-xs font-medium",
-												"border transition-colors duration-150",
-												sortBy === key
-													? "bg-surface-brand border-surface-brand text-content-inverse-primary"
-													: "bg-surface-primary border-stroke-secondary text-content-secondary hover:bg-surface-hover",
-											].join(" ")}
-										>
-											{label}
-										</button>
-									))}
-								</div>
-
-								{/* Rating sort */}
-								<div className="flex gap-2 overflow-x-auto scrollbar-none mt-2">
-									{(
-										[
-											{ key: "rating-desc", label: "Rating ↓" },
-											{ key: "rating-asc",  label: "Rating ↑" },
+											{ key: "default",     label: "A – Z"      },
+											{ key: "open-first",  label: "Open first" },
+											{ key: "price-asc",   label: "Price ↑"   },
+											{ key: "rating-desc", label: "Rating ↓"  },
+											{ key: "rating-asc",  label: "Rating ↑"  },
 										] as { key: SortOption; label: string }[]
 									).map(({ key, label }) => (
 										<button
