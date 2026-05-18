@@ -41,7 +41,7 @@ export function SearchInput({
 				onKeyDown={onKeyDown}
 				onFocus={onFocus}
 				onBlur={onBlur}
-				className="block w-full pl-3 pr-10 py-1 border border-transparent rounded-full bg-surface-primary text-sm focus:outline-none focus:ring-2 focus:ring-brand-700 transition-all"
+				className="block w-full pl-3 pr-10 py-1 border border-transparent rounded-full bg-surface-primary text-sm focus:outline-none focus:ring-2 focus:ring-surface-brand-hover transition-all"
 			/>
 
 			<button
