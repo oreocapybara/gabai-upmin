@@ -7,7 +7,7 @@ export type AdminListing = {
 	coord_latitude: number;
 	coord_longitude: number;
 	image_url: string | null;
-	image_path: string | null; // ✅ add this
+	image_path: string | null; 
 	opening_hours: string | null;
 	closing_hours: string | null;
 	price_min: number | null;
