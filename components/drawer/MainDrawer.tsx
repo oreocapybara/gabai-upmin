@@ -346,6 +346,7 @@ export function MainDrawer({
 					disableAutoFocus: true,
 					disableEnforceFocus: true,
 					disableRestoreFocus: true,
+					disableScrollLock: true,
 					style: { pointerEvents: "none" },
 				}}
 				sx={{
