@@ -491,7 +491,7 @@ export function MainDrawer({
 				<NotificationBanner
 					variant={reviewToast.variant}
 					title={reviewToast.title}
-					className="fixed top-20 right-4 z-[2200]"
+					className="fixed top-[70px] right-4 z-[2500]"
 					autoHideMs={3500}
 					onDismiss={() => setReviewToast(null)}
 				>
