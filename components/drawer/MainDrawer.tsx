@@ -180,7 +180,7 @@ export function MainDrawer({
 			setView("details");
 			setIsTransitioning(false);
 		}, 160);
-		snapTo(selectionSource === "pin" ? 60 : 0);
+		snapTo(selectionSource === "pin" ? 90 : 0);
 	}, [selectedListing, selectionSource, snapTo]);
 
 	useEffect(() => {
@@ -261,7 +261,7 @@ export function MainDrawer({
 				setIsTransitioning(false);
 			}, 160);
 			if (snapState === 0) {
-				snapTo(30);
+				snapTo(60);
 			}
 		},
 		[snapState, snapTo],
