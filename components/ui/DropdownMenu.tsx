@@ -1,6 +1,6 @@
 "use client";
 import * as React from "react";
-import KeyboardArrowDownRounded from "@mui/icons-material/KeyboardArrowDownRounded";
+import ArrowDown from "@mui/icons-material/KeyboardArrowDownRounded";
 import MenuRounded from "@mui/icons-material/MenuRounded";
 import { Category } from "../../types/index";
 import { getPinStyle } from "@/components/map/MapPin";
@@ -59,7 +59,7 @@ export default function DropdownMenu({
 					open
 						? "border-content-brand shadow-sm"
 						: "border-stroke hover:border-content-brand"
-				} ${selectedCategory ? "border-stroke-focus" : "bg-surface-primary"}`}
+				} `}
 			>
 				<div className="flex flex-1 items-center gap-1.5">
 					{TriggerIcon ? (
@@ -87,8 +87,8 @@ export default function DropdownMenu({
 				</div>
 
 				<span className="flex items-center">
-					<KeyboardArrowDownRounded
-						className={`shrink-0 align-middle text-content-brand transition-transform duration-300 ${
+					<ArrowDown
+						className={`shrink-0 align-middle text-content-secondary transition-transform duration-300 ${
 							open ? "rotate-180" : "rotate-0"
 						}`}
 					/>
