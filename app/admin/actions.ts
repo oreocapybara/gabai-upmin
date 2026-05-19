@@ -380,6 +380,22 @@ export async function updateListingAction(
 	}
 }
 
+export async function deleteFeedbackAction(feedbackId: number) {
+	try {
+		const { supabase } = await requireAdmin();
+		const { error } = await supabase
+			.from("Feedback")
+			.delete()
+			.eq("feedback_id", feedbackId);
+		if (error) return { error: error.message };
+		revalidatePath("/admin");
+		revalidatePath("/");
+		return { success: true };
+	} catch (err) {
+		return { error: err instanceof Error ? err.message : "Unknown error" };
+	}
+}
+
 export async function getRecentAdminLogsAction(limit = 15) {
 	try {
 		await requireAdmin();

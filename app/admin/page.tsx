@@ -10,7 +10,7 @@ async function AdminPageContent() {
 	const [listings, categories, recentLogs] = await Promise.all([
 		getAdminListings(),
 		getCategories(),
-		getRecentAdminLogs(),
+		getRecentAdminLogs(15),
 	]);
 
 	return (

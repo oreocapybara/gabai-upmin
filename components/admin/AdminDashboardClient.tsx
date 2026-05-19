@@ -21,6 +21,7 @@ import { cn, formatCategoryName, formatPriceRange, isListingOpen } from "@/lib/u
 import { useAdminDashboard } from "@/hooks/admin/useAdminDashboard";
 import type { AdminListing, AdminLogEntry } from "@/services/admin.service";
 import { getRecentAdminLogsAction } from "@/app/admin/actions";
+import { StaticStars } from "@/components/listing/StaticStars";
 
 interface AdminDashboardClientProps {
 	initialListings: AdminListing[];
@@ -33,18 +34,18 @@ export default function AdminDashboardClient({
 	categories,
 	recentLogs,
 }: AdminDashboardClientProps) {
-	const [logs, setLogs] = useState(recentLogs);
+	const [logs, setLogs] = useState(recentLogs.slice(0, 15));
 	const [activeTab, setActiveTab] = useState<"listings" | "activity">(
 		"listings",
 	);
 
 	useEffect(() => {
-		setLogs(recentLogs);
+		setLogs(recentLogs.slice(0, 15));
 	}, [recentLogs]);
 
 	const refreshLogs = async () => {
-		const result = await getRecentAdminLogsAction();
-		if (result?.data) setLogs(result.data as unknown as AdminLogEntry[]);
+		const result = await getRecentAdminLogsAction(15);
+		if (result?.data) setLogs((result.data as unknown as AdminLogEntry[]).slice(0, 15));
 	};
 
 	const {
@@ -251,10 +252,36 @@ export default function AdminDashboardClient({
 																		{open ? "Open" : "Closed"}
 																	</span>
 																</div>
-																{formatPriceRange(listing.price_min, listing.price_max) && (
-																	<span className="text-xs font-medium text-content-secondary">
-																		{formatPriceRange(listing.price_min, listing.price_max)}
-																	</span>
+																{listing.review_count > 0 ? (
+																	<div className="flex items-center gap-1 mt-0.5">
+																		<span className="text-xs font-bold text-content-primary leading-none">
+																			{listing.avg_rating!.toFixed(1)}
+																		</span>
+																		<StaticStars rating={listing.avg_rating!} iconClassName="!text-[14px]" />
+																		<span className="text-content-tertiary text-xs leading-none">
+																			({listing.review_count})
+																		</span>
+																		{formatPriceRange(listing.price_min, listing.price_max) && (
+																			<>
+																				<span className="text-content-tertiary text-xs leading-none">·</span>
+																				<span className="text-xs font-medium text-content-secondary leading-none">
+																					{formatPriceRange(listing.price_min, listing.price_max)}
+																				</span>
+																			</>
+																		)}
+																	</div>
+																) : (
+																	<div className="flex items-center gap-1 mt-0.5">
+																		<span className="text-xs text-content-tertiary">No reviews yet</span>
+																		{formatPriceRange(listing.price_min, listing.price_max) && (
+																			<>
+																				<span className="text-content-tertiary text-xs">·</span>
+																				<span className="text-xs font-medium text-content-secondary">
+																					{formatPriceRange(listing.price_min, listing.price_max)}
+																				</span>
+																			</>
+																		)}
+																	</div>
 																)}
 															</div>
 

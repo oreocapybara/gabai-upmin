@@ -189,8 +189,8 @@ export function AddUserForm({
 	const handleGenerateInvite = () => {
 		setInviteEmailTouched(true);
 		if (!inviteEmail || !isValidUpEmail(inviteEmail)) return;
-		const redirectTo = `${window.location.origin}/login`;
-		const link = `${window.location.origin}/invite/start?provider=google&email=${encodeURIComponent(inviteEmail)}&redirect_to=${encodeURIComponent(redirectTo)}`;
+		const callbackUrl = `${window.location.origin}/auth/callback?next=/admin&invited_email=${encodeURIComponent(inviteEmail)}`;
+		const link = `${window.location.origin}/invite/start?provider=google&email=${encodeURIComponent(inviteEmail)}&redirect_to=${encodeURIComponent(callbackUrl)}`;
 		setInviteLink(link);
 		setCopied(false);
 	};
