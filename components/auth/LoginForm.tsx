@@ -101,7 +101,7 @@ export function LoginForm({
 				<Input
 					id="email"
 					type="email"
-					label="Email"
+					label="Email*"
 					placeholder="admin@example.com"
 					required
 					value={email}
@@ -113,7 +113,7 @@ export function LoginForm({
 				{/* Password */}
 				<div className="flex flex-col gap-s">
 					<div className="flex items-center justify-between px-1">
-						<span className="text-s font-medium text-content-secondary">Password</span>
+						<span className="text-s font-medium text-content-secondary">Password*</span>
 						<Link
 							href="/forgot-password"
 							className="text-xs text-content-link transition-colors hover:text-content-link-hover active:text-content-link-pressed"

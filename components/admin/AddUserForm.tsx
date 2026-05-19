@@ -230,7 +230,7 @@ export function AddUserForm({
 							<Input
 								id="email"
 								type="email"
-								label="Email"
+								label="Email*"
 								placeholder="user@up.edu.ph"
 								required
 								value={email}
@@ -259,7 +259,7 @@ export function AddUserForm({
 								<Input
 									id="password"
 									type={showPassword ? "text" : "password"}
-									label="Password"
+									label="Password*"
 									placeholder="••••••••"
 									required
 									value={password}
@@ -289,7 +289,7 @@ export function AddUserForm({
 							<Input
 								id="confirm-password"
 								type={showConfirmPassword ? "text" : "password"}
-								label="Confirm password"
+								label="Confirm password*"
 								placeholder="••••••••"
 								required
 								value={confirmPassword}
