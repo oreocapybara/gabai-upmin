@@ -12,6 +12,8 @@ export default function Page() {
 						alt="GABAI UP Mindanao Logo"
 						width={72}
 						height={72}
+						draggable={false}
+						onContextMenu={(e) => e.preventDefault()}
 						priority
 						className="object-contain"
 					/>
