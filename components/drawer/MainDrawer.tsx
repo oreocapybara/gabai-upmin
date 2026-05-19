@@ -32,7 +32,7 @@ type SortOption = "default" | "open-first" | "price-asc" | "rating-desc" | "rati
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const PULLER_HEIGHT = 90; // px
+const PULLER_HEIGHT = 76; // px
 const SNAP_POINTS: SnapPoint[] = [0, 30, 60, 90];
 const VIEW_TRANSITION_MS = 160;
 
@@ -237,7 +237,7 @@ export function MainDrawer({
 			onCategoryChange?.(categoryId);
 			setSortBy("default");
 			transitionTo("list");
-			if (snapState === 0) snapTo(60);
+			if (snapState === 0) snapTo(30);
 		},
 		[onCategoryChange, snapState, snapTo, transitionTo],
 	);

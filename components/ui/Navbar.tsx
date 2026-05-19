@@ -140,6 +140,8 @@ export default function Navbar() {
 								alt="Logo"
 								fill
 								priority
+								draggable={false}
+								onContextMenu={(e) => e.preventDefault()}
 								className="object-contain p-1"
 							/>
 						</div>
