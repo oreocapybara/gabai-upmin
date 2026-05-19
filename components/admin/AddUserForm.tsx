@@ -146,7 +146,7 @@ export function AddUserForm({
 	const emailValid = !email || isValidUpEmail(email);
 	const emailError = emailTouched && email && !emailValid;
 
-	const { checks: pwChecks, score: pwScore } = getPasswordStrength(password);
+	const { score: pwScore } = getPasswordStrength(password);
 	const passwordWeak = password.length > 0 && pwScore < 4;
 	const passwordMismatch = confirmPassword.length > 0 && password !== confirmPassword;
 	const passwordMatch = confirmPassword.length > 0 && password === confirmPassword;

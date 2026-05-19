@@ -83,8 +83,8 @@ export function useListingImageUpload(
 			setPendingFile(null);
 
 			return { url: pub.publicUrl, path: data.path };
-		} catch (err: any) {
-			setUploadError(err.message || "Failed to upload image.");
+		} catch (err) {
+			setUploadError(err instanceof Error ? err.message : "Failed to upload image.");
 			return null;
 		} finally {
 			setImageUploading(false);
