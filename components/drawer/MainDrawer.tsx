@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/Button";
 import { Box, Drawer } from "@mui/material";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import DirectionsIcon from "@mui/icons-material/Directions";
-import { ChevronLeft } from "lucide-react";
+import ChevronLeft from '@mui/icons-material/ChevronLeftRounded';
 
 import { ListingDetails } from "@/components/listing/ListingDetails";
 import { ReviewSection } from "@/components/listing/ReviewSection";

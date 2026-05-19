@@ -20,7 +20,7 @@ import Navbar from "@/components/ui/Navbar";
 import DropdownMenu from "@/components/ui/DropdownMenu";
 
 import { cn, formatCategoryName, formatPriceRange, isListingOpen } from "@/lib/utils";
-import { useNotification } from "@/hooks/useNotification";
+import { useNotification } from "@/hooks/common/useNotification";
 import { useAdminDashboard } from "@/hooks/admin/useAdminDashboard";
 import type { AdminListing, AdminLogEntry } from "@/services/admin.service";
 import { getRecentAdminLogsAction } from "@/app/admin/actions";

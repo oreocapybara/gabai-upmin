@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 import CheckCircleRoundedIcon from "@mui/icons-material/CheckCircleRounded";
 import ErrorRoundedIcon from "@mui/icons-material/ErrorRounded";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
-import type { NotificationState } from "@/hooks/useNotification";
+import type { NotificationState } from "@/hooks/common/useNotification";
 
 interface AdminNotificationBarProps {
 	notification: NotificationState | null;

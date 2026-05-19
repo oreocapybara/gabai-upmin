@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import DeleteConfirmModal from "./DeleteConfirmModal";
-import { Edit, Trash2 } from "lucide-react";
+import Edit from '@mui/icons-material/EditRounded';
 
 interface ListingWithCategory {
   listing_id: number;
@@ -86,7 +86,7 @@ export default function ListingTable({ initialListings }: ListingTableProps) {
                     })}
                     className="px-4 py-1 bg-[#8A1538] text-white rounded-2xl font-semibold text-sm flex items-center gap-1"
                   >
-                    <Edit size={14} />
+                    <Edit/>
                     Edit
                   </button>
                 </div>

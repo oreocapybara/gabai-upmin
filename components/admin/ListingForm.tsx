@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/Button";
 import { Card, CardContent } from "@/components/ui/Card";
 import { AdminNotificationBar } from "@/components/admin/AdminNotificationBar";
 import { cn, formatCategoryName } from "@/lib/utils";
-import { useNotification } from "@/hooks/useNotification";
+import { useNotification } from "@/hooks/common/useNotification";
 
 import { createListingAction, updateListingAction, deleteFeedbackAction } from "@/app/admin/actions";
 import { useListingImageUpload } from "@/hooks/admin/useListingImageUpload";
