@@ -3,6 +3,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { LocationPicker } from "@/components/admin/LocationPicker";
+import { ImageCropModal } from "@/components/admin/ImageCropModal";
 
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
@@ -21,6 +22,7 @@ import NotesRoundedIcon from "@mui/icons-material/NotesRounded";
 import CloudUploadRoundedIcon from "@mui/icons-material/CloudUploadRounded";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import SwapHorizRoundedIcon from "@mui/icons-material/SwapHorizRounded";
+import CropFreeRoundedIcon from "@mui/icons-material/CropFreeRounded";
 import CategoryRoundedIcon from "@mui/icons-material/CategoryRounded";
 import ExpandMoreRoundedIcon from "@mui/icons-material/ExpandMoreRounded";
 import CheckRoundedIcon from "@mui/icons-material/CheckRounded";
@@ -194,9 +196,13 @@ export default function ListingForm({
 	const [imageRemoved, setImageRemoved] = useState(false);
 	const [locationKey, setLocationKey] = useState(0);
 
+	const [cropSrc, setCropSrc] = useState<string | null>(null);
+	const [cropFileName, setCropFileName] = useState("");
+	const rawCropSrcRef = useRef<string | null>(null);
+
 	const [formData, setFormData] = useState({
 		listing_name: initialData?.listing_name ?? "",
-		category_id: initialData?.category_id ?? categories[0]?.category_id ?? 0,
+		category_id: initialData?.category_id ?? 0,
 		coord_latitude: initialData?.coord_latitude ?? "",
 		coord_longitude: initialData?.coord_longitude ?? "",
 		image_url: initialData?.image_url ?? "",
@@ -211,15 +217,21 @@ export default function ListingForm({
 	// Captured once at mount — never updated — so we can diff against it.
 	const initialSnapshot = useRef({ ...formData });
 
+	// Revoke the raw (pre-crop) blob URL when the component unmounts
+	useEffect(() => {
+		const ref = rawCropSrcRef;
+		return () => { if (ref.current) URL.revokeObjectURL(ref.current); };
+	}, []);
+
 	const {
 		imagePreview,
 		pendingFile,
 		imageUploading,
 		uploadError,
-		handleImageUpload,
 		uploadPendingFile,
 		removeImage,
 		setUploadError,
+		setFileDirectly,
 	} = useListingImageUpload(initialData?.image_url, initialData?.image_path);
 
 	const isDirty = useMemo(() => {
@@ -266,14 +278,65 @@ export default function ListingForm({
 	};
 
 	const handleRemoveImage = () => {
+		if (rawCropSrcRef.current) {
+			URL.revokeObjectURL(rawCropSrcRef.current);
+			rawCropSrcRef.current = null;
+		}
 		removeImage();
 		setFormData((prev) => ({ ...prev, image_url: "", image_path: "" }));
 		setImageRemoved(true);
 		if (fileInputRef.current) fileInputRef.current.value = "";
 	};
 
+	const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+		const file = e.target.files?.[0];
+		if (!file) return;
+		if (fileInputRef.current) fileInputRef.current.value = "";
+		const validTypes = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+		if (!validTypes.includes(file.type)) {
+			notify("Invalid file type. Please upload a JPEG, PNG, WebP, or GIF.", "error");
+			return;
+		}
+		if (file.size > 5 * 1024 * 1024) {
+			notify("Image must be smaller than 5 MB.", "error");
+			return;
+		}
+		if (rawCropSrcRef.current) URL.revokeObjectURL(rawCropSrcRef.current);
+		rawCropSrcRef.current = URL.createObjectURL(file);
+		setCropFileName(file.name);
+		setCropSrc(rawCropSrcRef.current);
+	};
+
+	const handleCropConfirm = (blob: Blob, fileName: string) => {
+		const outName = fileName.replace(/\.[^.]+$/, ".jpg");
+		const croppedFile = new File([blob], outName, { type: "image/jpeg" });
+		const croppedBlobUrl = URL.createObjectURL(blob);
+		setFileDirectly(croppedFile, croppedBlobUrl);
+		setCropSrc(null);
+		setImageRemoved(false);
+	};
+
+	const handleCropCancel = () => {
+		// If no file was already staged, this was a fresh selection — revoke the raw blob
+		if (!pendingFile) {
+			if (rawCropSrcRef.current) {
+				URL.revokeObjectURL(rawCropSrcRef.current);
+				rawCropSrcRef.current = null;
+			}
+		}
+		setCropSrc(null);
+	};
+
+	const handleAdjust = () => {
+		if (rawCropSrcRef.current) setCropSrc(rawCropSrcRef.current);
+	};
+
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
+		if (!formData.category_id) {
+			notify("Please select a category.", "error");
+			return;
+		}
 		if (!formData.coord_latitude || !formData.coord_longitude) {
 			notify("Please tap the map to place a pin and set the listing location.", "error");
 			return;
@@ -308,7 +371,7 @@ export default function ListingForm({
 			// Clear the form so cached state never shows stale data on back-navigation
 			setFormData({
 				listing_name: "",
-				category_id: categories[0]?.category_id ?? 0,
+				category_id: 0,
 				coord_latitude: "",
 				coord_longitude: "",
 				image_url: "",
@@ -338,6 +401,14 @@ export default function ListingForm({
 
 	return (
 		<>
+		{cropSrc && (
+			<ImageCropModal
+				src={cropSrc}
+				fileName={cropFileName}
+				onConfirm={handleCropConfirm}
+				onCancel={handleCropCancel}
+			/>
+		)}
 		<AdminNotificationBar
 			notification={notification}
 			visible={visible}
@@ -364,10 +435,7 @@ export default function ListingForm({
 					ref={fileInputRef}
 					type="file"
 					accept="image/jpeg,image/png,image/webp,image/gif"
-					onChange={(e) => {
-						handleImageUpload(e);
-						setImageRemoved(false);
-					}}
+					onChange={handleFileSelect}
 					className="hidden"
 				/>
 
@@ -414,27 +482,36 @@ export default function ListingForm({
 								alt="Preview"
 								className="h-full w-full object-cover"
 							/>
-							{/* Overlay controls */}
-							<div className="absolute inset-x-0 bottom-0 flex gap-2 bg-gradient-to-t from-black/70 to-transparent px-3 pb-3 pt-10">
-								<Button
+							{/* Overlay controls — top-right */}
+							<div className="absolute right-2 top-2 z-10 flex items-center gap-1.5">
+								{pendingFile && !imageUploading && (
+									<button
+										type="button"
+										onClick={handleAdjust}
+										title="Adjust crop"
+										className="flex h-7 items-center gap-1 rounded-full bg-black/55 pl-1.5 pr-2.5 text-white backdrop-blur-sm transition-colors hover:bg-black/75 active:scale-95"
+									>
+										<CropFreeRoundedIcon style={{ fontSize: 14 }} />
+										<span className="text-xs font-medium">Adjust</span>
+									</button>
+								)}
+								<button
 									type="button"
-									variant="secondary"
-									size="sm"
-									className="flex-1"
 									onClick={() => fileInputRef.current?.click()}
-									leadingIcon={<SwapHorizRoundedIcon fontSize="small" />}
+									title="Replace image"
+									className="flex h-7 items-center gap-1 rounded-full bg-black/55 pl-1.5 pr-2.5 text-white backdrop-blur-sm transition-colors hover:bg-black/75 active:scale-95"
 								>
-									Replace
-								</Button>
-								<Button
+									<SwapHorizRoundedIcon style={{ fontSize: 14 }} />
+									<span className="text-xs font-medium">Replace</span>
+								</button>
+								<button
 									type="button"
-									variant="secondary"
-									size="sm"
 									onClick={handleRemoveImage}
-									leadingIcon={<CloseRoundedIcon fontSize="small" />}
+									title="Remove image"
+									className="flex h-7 w-7 items-center justify-center rounded-full bg-black/55 text-white backdrop-blur-sm transition-colors hover:bg-red-500/75 active:scale-95"
 								>
-									Remove
-								</Button>
+									<CloseRoundedIcon style={{ fontSize: 15 }} />
+								</button>
 							</div>
 						</div>
 					)}

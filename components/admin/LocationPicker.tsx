@@ -77,8 +77,19 @@ export function LocationPicker({ value, onChange }: LocationPickerProps) {
 					});
 					markerRef.current = marker;
 
-					marker.addListener("gmp-dragend", () => {
-						const updated = normalizeLatLng(marker.position);
+					// gmp-* are DOM CustomEvents — must use addEventListener, not addListener
+					const markerEl = marker as unknown as EventTarget;
+
+					markerEl.addEventListener("gmp-drag", () => {
+						const pos = marker.position;
+						if (!pos) return;
+						setDisplayCoords(normalizeLatLng(pos));
+					});
+
+					markerEl.addEventListener("gmp-dragend", () => {
+						const pos = marker.position;
+						if (!pos) return;
+						const updated = normalizeLatLng(pos);
 						setDisplayCoords(updated);
 						onChangeRef.current(updated);
 					});
@@ -146,7 +157,7 @@ export function LocationPicker({ value, onChange }: LocationPickerProps) {
 							{displayCoords.lat.toFixed(6)},&nbsp;{displayCoords.lng.toFixed(6)}
 						</span>
 						<span className="ml-auto text-xs text-content-tertiary whitespace-nowrap">
-							Drag pin to adjust
+							Click on the map to adjust
 						</span>
 					</>
 				) : (
