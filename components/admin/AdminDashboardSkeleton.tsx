@@ -24,12 +24,11 @@ function ListingRowSkeleton() {
 			<div className="flex gap-3 px-4 pt-3 pb-2">
 				<div className="w-24 h-20 flex-shrink-0 rounded-lg bg-gray-200 animate-pulse" />
 
-				<div className="flex-1 min-w-0 flex flex-col gap-0.5">
+				<div className="flex-1 min-w-0 flex flex-col justify-evenly">
 					<Bone className="h-4 w-3/4" />
-					<Bone className="h-4 w-1/2 mt-0.5" />
-					<Bone className="h-3 w-2/5 rounded-full mt-0.5" />
-					<Bone className="h-3 w-1/4 rounded-full mt-0.5" />
-					<Bone className="h-3 w-28 rounded-full mt-0.5" />
+					<Bone className="h-3 w-1/2 rounded-full" />
+					<Bone className="h-3 w-2/5 rounded-full" />
+					<Bone className="h-3 w-28 rounded-full" />
 				</div>
 			</div>
 

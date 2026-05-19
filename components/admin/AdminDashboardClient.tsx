@@ -19,7 +19,7 @@ import { Input } from "@/components/ui/Input";
 import Navbar from "@/components/ui/Navbar";
 import DropdownMenu from "@/components/ui/DropdownMenu";
 
-import { cn, formatCategoryName, formatPriceRange, isListingOpen } from "@/lib/utils";
+import { cn, formatCategoryName, formatPriceRange, getListingHoursStatus } from "@/lib/utils";
 import { useNotification } from "@/hooks/common/useNotification";
 import { useAdminDashboard } from "@/hooks/admin/useAdminDashboard";
 import type { AdminListing, AdminLogEntry } from "@/services/admin.service";
@@ -206,7 +206,7 @@ export default function AdminDashboardClient({
 								) : (
 									<div className="flex flex-col">
 										{filteredListings.map((listing, i) => {
-											const open = isListingOpen(
+											const hoursStatus = getListingHoursStatus(
 												listing.opening_hours,
 												listing.closing_hours,
 											);
@@ -262,10 +262,10 @@ export default function AdminDashboardClient({
 																<span
 																	className={cn(
 																		"text-xs font-medium",
-																		open ? "text-content-positive" : "text-content-negative",
+																		hoursStatus === 'open' ? 'text-content-positive' : hoursStatus === 'closed' ? 'text-content-negative' : 'text-content-tertiary',
 																	)}
 																>
-																	{open ? "Open" : "Closed"}
+																	{hoursStatus === 'open' ? 'Open' : hoursStatus === 'closed' ? 'Closed' : 'Hours vary'}
 																</span>
 															</div>
 
