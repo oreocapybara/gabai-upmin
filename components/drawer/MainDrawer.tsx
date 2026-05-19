@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, useRef, useMemo } from "react";
+import { createPortal } from "react-dom";
 import { Button } from "@/components/ui/Button";
 import { Box, Drawer } from "@mui/material";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
@@ -487,26 +488,27 @@ export function MainDrawer({
 				</Box>
 			</Drawer>
 
-			{reviewToast && (
+			{reviewToast && createPortal(
 				<NotificationBanner
 					variant={reviewToast.variant}
 					title={reviewToast.title}
-					className="fixed top-[70px] right-4 z-[2500]"
+					className="fixed top-[72px] right-4 z-[10000]"
 					autoHideMs={3500}
 					onDismiss={() => setReviewToast(null)}
 				>
 					{reviewToast.message}
-				</NotificationBanner>
+				</NotificationBanner>,
+				document.body,
 			)}
 
 			{/* ── Active directions banner — animates in/out above the puller ── */}
-			{bannerListing && (
+			{bannerListing && createPortal(
 				<div
 					className={[
 						// left-4 matches the locate-button's right-4 margin on the opposite side.
 						// right-[64px] = 40px (locate btn) + 8px gap + 16px screen edge — keeps
 						// both controls in a visual row without putting them in the same component.
-						"fixed left-4 right-[64px] flex pointer-events-none z-[2100]",
+						"fixed left-4 right-[64px] flex pointer-events-none z-[10000]",
 						"transition-all duration-300 ease-out",
 						bannerVisible
 							? "opacity-100 translate-y-0"
@@ -532,7 +534,8 @@ export function MainDrawer({
 							<CloseRoundedIcon className="!text-[18px]" />
 						</button>
 					</div>
-				</div>
+				</div>,
+				document.body,
 			)}
 		</Box>
 	);

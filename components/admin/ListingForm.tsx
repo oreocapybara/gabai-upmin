@@ -7,8 +7,9 @@ import { LocationPicker } from "@/components/admin/LocationPicker";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent } from "@/components/ui/Card";
-import { showToast } from "@/components/ui/CustomToast";
+import { AdminNotificationBar } from "@/components/admin/AdminNotificationBar";
 import { cn, formatCategoryName } from "@/lib/utils";
+import { useNotification } from "@/hooks/useNotification";
 
 import { createListingAction, updateListingAction, deleteFeedbackAction } from "@/app/admin/actions";
 import { useListingImageUpload } from "@/hooks/admin/useListingImageUpload";
@@ -172,8 +173,9 @@ export default function ListingForm({
 	const router = useRouter();
 	const fileInputRef = useRef<HTMLInputElement>(null);
 
+	const { notification, visible, notify, dismiss } = useNotification();
+
 	const [isLoading, setIsLoading] = useState(false);
-	const [error, setError] = useState<string | null>(null);
 	const [imageRemoved, setImageRemoved] = useState(false);
 	const [locationKey, setLocationKey] = useState(0);
 
@@ -219,10 +221,10 @@ export default function ListingForm({
 		setDeletingFeedbackId(feedbackId);
 		const result = await deleteFeedbackAction(feedbackId);
 		if (result?.error) {
-			showToast.error("Failed to delete review", result.error);
+			notify(`Failed to delete review: ${result.error}`, "error");
 		} else {
 			setFeedbacks((prev) => prev.filter((f) => f.feedback_id !== feedbackId));
-			showToast.success("Review deleted", "The review has been removed.");
+			notify("Review deleted.", "success");
 		}
 		setDeletingFeedbackId(null);
 	};
@@ -246,11 +248,10 @@ export default function ListingForm({
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
 		if (!formData.coord_latitude || !formData.coord_longitude) {
-			setError("Please tap the map to place a pin and set the listing location.");
+			notify("Please tap the map to place a pin and set the listing location.", "error");
 			return;
 		}
 		setIsLoading(true);
-		setError(null);
 		setUploadError(null);
 
 		try {
@@ -277,12 +278,6 @@ export default function ListingForm({
 
 			if (result?.error) throw new Error(result.error);
 
-			if (isEditing) {
-				showToast.success("Listing updated", "Your changes have been saved.");
-			} else {
-				showToast.success("Listing created", "It's now live on the map.");
-			}
-
 			// Clear the form so cached state never shows stale data on back-navigation
 			setFormData({
 				listing_name: "",
@@ -300,10 +295,13 @@ export default function ListingForm({
 			setLocationKey((k) => k + 1);
 			handleRemoveImage();
 
-			router.push("/admin");
+			const msg = isEditing
+				? "Listing updated — your changes are live."
+				: "Listing created — it's now on the map.";
+			router.push(`/admin?notify=${encodeURIComponent(msg)}`);
 			router.refresh();
 		} catch (err: any) {
-			setError(err.message ?? "Failed to save listing");
+			notify(err.message ?? "Failed to save listing", "error");
 		} finally {
 			setIsLoading(false);
 		}
@@ -312,6 +310,13 @@ export default function ListingForm({
 	// ── Render ────────────────────────────────────────────────────────────────
 
 	return (
+		<>
+		<AdminNotificationBar
+			notification={notification}
+			visible={visible}
+			onDismiss={dismiss}
+			mode="fixed"
+		/>
 		<div className="mx-auto max-w-xl px-4 pt-6 pb-32">
 			{/* Page header */}
 			<div className="mb-6">
@@ -584,13 +589,6 @@ export default function ListingForm({
 					</div>
 				)}
 
-				{/* ── Error banner ── */}
-				{error && (
-					<div className="rounded-xl border border-stroke-negative bg-surface-primary px-4 py-3">
-						<p className="text-sm text-content-negative">{error}</p>
-					</div>
-				)}
-
 				{/* ── Sticky action bar ── */}
 				<div className="fixed inset-x-0 bottom-0 border-t border-stroke-secondary bg-surface-primary/95 backdrop-blur supports-[backdrop-filter]:bg-surface-primary/80">
 					<div className="mx-auto flex max-w-xl gap-3 p-4">
@@ -616,5 +614,6 @@ export default function ListingForm({
 				</div>
 			</form>
 		</div>
+		</>
 	);
 }

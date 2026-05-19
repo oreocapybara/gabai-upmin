@@ -130,7 +130,7 @@ export default function Map({
 			<div className="h-full w-full relative z-0" ref={containerRef} />
 
 			{(showMapError || showGeoError || showGeoSupportError) && (
-				<div className="fixed top-20 right-4 z-[2200] flex flex-col gap-s">
+				<div className="fixed top-[72px] right-4 z-[10000] flex flex-col gap-s">
 					{mapError && showMapError && (
 						<NotificationBanner
 							variant="error"

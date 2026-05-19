@@ -79,8 +79,10 @@ export default function ManagePage({
 	searchParams: Promise<{ listing_id?: string }>;
 }) {
 	return (
-		<Suspense fallback={<ListingFormSkeleton />}>
-			<ManagePageContent searchParams={searchParams} />
-		</Suspense>
+		<>
+			<Suspense fallback={<ListingFormSkeleton />}>
+				<ManagePageContent searchParams={searchParams} />
+			</Suspense>
+		</>
 	);
 }

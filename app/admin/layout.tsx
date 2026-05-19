@@ -1,5 +1,4 @@
 import { Suspense } from "react";
-import { ToastProvider } from "@/components/ui/ToastProvider";
 import { AdminDashboardSkeleton } from "@/components/admin/AdminDashboardSkeleton";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
@@ -39,7 +38,6 @@ export default function AdminLayout({
 }) {
 	return (
 		<>
-			<ToastProvider />
 			<Suspense fallback={<AdminDashboardSkeleton />}>
 				<AdminGate>{children}</AdminGate>
 			</Suspense>

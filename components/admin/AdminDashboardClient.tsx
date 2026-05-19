@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import Image from "next/image";
+import { useSearchParams } from "next/navigation";
 
 import Search from "@mui/icons-material/SearchRounded";
 import Plus from "@mui/icons-material/AddRounded";
@@ -11,6 +12,7 @@ import Person from "@mui/icons-material/PersonAddRounded";
 
 import DeleteConfirmModal from "@/components/admin/DeleteConfirmModal";
 import RecentAdminLogTable from "@/components/admin/RecentAdminLogTable";
+import { AdminNotificationBar } from "@/components/admin/AdminNotificationBar";
 import { Button, buttonVariants } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
@@ -18,6 +20,7 @@ import Navbar from "@/components/ui/Navbar";
 import DropdownMenu from "@/components/ui/DropdownMenu";
 
 import { cn, formatCategoryName, formatPriceRange, isListingOpen } from "@/lib/utils";
+import { useNotification } from "@/hooks/useNotification";
 import { useAdminDashboard } from "@/hooks/admin/useAdminDashboard";
 import type { AdminListing, AdminLogEntry } from "@/services/admin.service";
 import { getRecentAdminLogsAction } from "@/app/admin/actions";
@@ -35,9 +38,21 @@ export default function AdminDashboardClient({
 	recentLogs,
 }: AdminDashboardClientProps) {
 	const [logs, setLogs] = useState(recentLogs.slice(0, 15));
-	const [activeTab, setActiveTab] = useState<"listings" | "activity">(
-		"listings",
-	);
+	const [activeTab, setActiveTab] = useState<"listings" | "activity">("listings");
+	const searchParams = useSearchParams();
+
+	const { notification, visible, notify, dismiss } = useNotification();
+
+	// Show a success message redirected from the manage page
+	useEffect(() => {
+		const msg = searchParams.get("notify");
+		if (!msg) return;
+		notify(decodeURIComponent(msg), "success");
+		const url = new URL(window.location.href);
+		url.searchParams.delete("notify");
+		window.history.replaceState({}, "", url.toString());
+	// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, []);
 
 	useEffect(() => {
 		setLogs(recentLogs.slice(0, 15));
@@ -57,14 +72,21 @@ export default function AdminDashboardClient({
 		setSelectedCategory,
 		filteredListings,
 		handleDelete,
-	} = useAdminDashboard(initialListings, refreshLogs);
+	} = useAdminDashboard(initialListings, refreshLogs, notify);
 
 	return (
-		<div className="h-screen overflow-hidden bg-surface-primary">
+		<div className="h-svh overflow-hidden bg-surface-primary">
 			<Navbar />
 
-{/* Full-height column below the fixed navbar */}
+			{/* Full-height column below the fixed navbar */}
 			<div className="flex h-full flex-col pt-16">
+				<AdminNotificationBar
+					notification={notification}
+					visible={visible}
+					onDismiss={dismiss}
+					mode="inline"
+				/>
+
 				<main className="mx-auto flex w-full max-w-5xl flex-1 min-h-0 flex-col px-4">
 					{/* ── Static header ── */}
 					<header
@@ -164,7 +186,6 @@ export default function AdminDashboardClient({
 								activeTab === "listings" ? "flex" : "hidden lg:flex",
 							)}
 						>
-
 							{/* Scrollable list */}
 							<div className="flex-1 min-h-0 overflow-y-auto rounded-xl">
 								{filteredListings.length === 0 ? (
@@ -183,7 +204,7 @@ export default function AdminDashboardClient({
 										</Link>
 									</Card>
 								) : (
-									<div className="flex flex-col gap-3">
+									<div className="flex flex-col">
 										{filteredListings.map((listing, i) => {
 											const open = isListingOpen(
 												listing.opening_hours,
@@ -194,126 +215,106 @@ export default function AdminDashboardClient({
 												<div
 													key={listing.listing_id}
 													className={cn(
-														"border-b border-stroke-secondary overflow-hidden",
-														"transition-all duration-200",
+														"border-b border-stroke-tertiary transition-all duration-200",
 														isTargeted
 															? "bg-surface-negative-subtle opacity-60 scale-[0.99]"
-															: "bg-surface-secondary hover:bg-surface-hover",
+															: "hover:bg-surface-hover",
 													)}
 													style={{
 														animation: "adminRowIn 0.28s ease-out both",
 														animationDelay: `${Math.min(i * 35, 280)}ms`,
 													}}
 												>
-													<div className="flex items-center p-2">
-														<div className="relative w-28 h-28 flex-shrink-0 rounded-xl overflow-hidden bg-surface-primary">
+													{/* Thumbnail + info */}
+													<div className="flex gap-3 px-4 pt-3 pb-2">
+														<div className="relative w-16 h-16 flex-shrink-0 rounded-lg overflow-hidden bg-surface-primary">
 															<Image
 																src={listing.image_url ?? "/logo.svg"}
 																alt={listing.listing_name}
 																fill
-																sizes="112px"
+																sizes="64px"
 																priority={i === 0}
+																draggable={false}
+																onContextMenu={(e) => e.preventDefault()}
 																className={cn(
 																	listing.image_url
 																		? "object-cover"
 																		: "object-contain p-2",
 																)}
 																onError={(e) => {
-																	(e.target as HTMLImageElement).src =
-																		"/logo.svg";
+																	(e.target as HTMLImageElement).src = "/logo.svg";
 																}}
 															/>
 														</div>
 
-														<div className="flex flex-col flex-auto gap-3 px-2">
-															<div className="flex flex-col items-start gap-1">
-																<h6 className="font-display font-semibold text-content-primary line-clamp-2">
-																	{listing.listing_name}
-																</h6>
-																<div className="flex items-center gap-2 text-content-secondary text-s">
-																	<span>
-																		{listing.Category?.category_name
-																			? formatCategoryName(
-																					listing.Category.category_name,
-																				)
-																			: "Uncategorized"}
-																	</span>
-																	<span className="text-content-tertiary">
-																		·
-																	</span>
-																	<span
-																		className={cn(
-																			"px-2 py-0.5 rounded-full text-xs font-semibold",
-																			open
-																				? "bg-surface-positive text-content-inverse-primary"
-																				: "bg-content-negative text-content-inverse-primary",
-																		)}
-																	>
-																		{open ? "Open" : "Closed"}
-																	</span>
-																</div>
-																{listing.review_count > 0 ? (
-																	<div className="flex items-center gap-1 mt-0.5">
-																		<span className="text-xs font-bold text-content-primary leading-none">
-																			{listing.avg_rating!.toFixed(1)}
-																		</span>
-																		<StaticStars rating={listing.avg_rating!} iconClassName="!text-[14px]" />
-																		<span className="text-content-tertiary text-xs leading-none">
-																			({listing.review_count})
-																		</span>
-																		{formatPriceRange(listing.price_min, listing.price_max) && (
-																			<>
-																				<span className="text-content-tertiary text-xs leading-none">·</span>
-																				<span className="text-xs font-medium text-content-secondary leading-none">
-																					{formatPriceRange(listing.price_min, listing.price_max)}
-																				</span>
-																			</>
-																		)}
-																	</div>
-																) : (
-																	<div className="flex items-center gap-1 mt-0.5">
-																		<span className="text-xs text-content-tertiary">No reviews yet</span>
-																		{formatPriceRange(listing.price_min, listing.price_max) && (
-																			<>
-																				<span className="text-content-tertiary text-xs">·</span>
-																				<span className="text-xs font-medium text-content-secondary">
-																					{formatPriceRange(listing.price_min, listing.price_max)}
-																				</span>
-																			</>
-																		)}
-																	</div>
-																)}
-															</div>
+														<div className="flex-1 min-w-0 flex flex-col gap-0.5">
+															<h6 className="font-display font-semibold text-sm leading-snug text-content-primary line-clamp-2">
+																{listing.listing_name}
+															</h6>
 
-															<div className="flex self-stretch gap-2">
-																<Button
-																	onClick={() =>
-																		setDeleteTarget({
-																			id: listing.listing_id,
-																			name: listing.listing_name,
-																		})
-																	}
-																	variant="secondary"
-																	size="sm"
-																												>
-																	Delete
-																</Button>
-
-																<Link
-																	href={`/admin/manage?listing_id=${listing.listing_id}`}
+															<div className="flex items-center gap-1.5">
+																<span className="text-xs text-content-secondary">
+																	{listing.Category?.category_name
+																		? formatCategoryName(listing.Category.category_name)
+																		: "Uncategorized"}
+																</span>
+																<span className="text-content-tertiary text-xs">·</span>
+																<span
 																	className={cn(
-																		buttonVariants({
-																			variant: "default",
-																			size: "sm",
-																		}),
-																		"flex-1 decoration-transparent",
+																		"text-xs font-medium",
+																		open ? "text-content-positive" : "text-content-negative",
 																	)}
 																>
-																	<EditRoundedIcon fontSize="small" />
-																	Edit
-																</Link>
+																	{open ? "Open" : "Closed"}
+																</span>
 															</div>
+
+															{formatPriceRange(listing.price_min, listing.price_max) && (
+																<span className="text-xs text-content-secondary leading-none">
+																	{formatPriceRange(listing.price_min, listing.price_max)}
+																</span>
+															)}
+
+															{listing.review_count > 0 ? (
+																<div className="flex items-center gap-1 mt-0.5">
+																	<span className="text-xs font-bold text-content-primary leading-none">
+																		{listing.avg_rating!.toFixed(1)}
+																	</span>
+																	<StaticStars rating={listing.avg_rating!} iconClassName="!text-[12px]" />
+																	<span className="text-xs text-content-tertiary leading-none">
+																		({listing.review_count})
+																	</span>
+																</div>
+															) : (
+																<span className="text-xs text-content-tertiary mt-0.5">No reviews yet</span>
+															)}
 														</div>
+													</div>
+
+													{/* Actions */}
+													<div className="flex gap-2 px-4 pb-3">
+														<Button
+															onClick={() =>
+																setDeleteTarget({
+																	id: listing.listing_id,
+																	name: listing.listing_name,
+																})
+															}
+															variant="secondary"
+															size="sm"
+														>
+															Delete
+														</Button>
+														<Link
+															href={`/admin/manage?listing_id=${listing.listing_id}`}
+															className={cn(
+																buttonVariants({ variant: "default", size: "sm" }),
+																"flex-1 decoration-transparent",
+															)}
+														>
+															<EditRoundedIcon fontSize="small" />
+															Edit
+														</Link>
 													</div>
 												</div>
 											);
@@ -330,7 +331,6 @@ export default function AdminDashboardClient({
 								activeTab === "activity" ? "flex flex-1" : "hidden lg:flex",
 							)}
 						>
-							{/* Column header — static, never scrolls */}
 							<div className="pb-3 flex-none">
 								<p className="text-xs uppercase tracking-[0.2em] text-content-tertiary">
 									Recent updates
@@ -340,7 +340,6 @@ export default function AdminDashboardClient({
 								</h2>
 							</div>
 
-							{/* Scrollable log entries */}
 							<div className="flex-1 min-h-0 overflow-y-auto">
 								<RecentAdminLogTable logs={logs} />
 							</div>

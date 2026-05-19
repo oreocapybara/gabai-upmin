@@ -66,7 +66,7 @@ export function NotificationBanner({
 		<div
 			className={cn(
 				bannerVariants({ variant, size }),
-				isFloating && "fixed top-l right-l z-[2200]",
+				isFloating && "fixed top-[72px] right-l z-[10000]",
 				className,
 			)}
 			role={variant === "error" ? "alert" : "status"}
