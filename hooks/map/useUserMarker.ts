@@ -143,17 +143,69 @@ function buildMarkerElement(): {
 	return { wrapper, coneGroup: g, svg };
 }
 
+// ─── Position animation ───────────────────────────────────────────────────────
+
+// Slightly shorter than the typical 1-2 s GPS interval so the marker always
+// arrives at each fix before the next one lands.
+const ANIM_DURATION_MS = 800;
+
+// ~200 m in degrees. Jumps larger than this (GPS re-acquisition, stale cache
+// flush) snap immediately instead of sweeping across the map.
+const SNAP_THRESHOLD_DEG = 0.002;
+
+type Pos = { lat: number; lng: number };
+type Ref<T> = { current: T };
+
+function cancelAnim(rafRef: Ref<number | null>) {
+	if (rafRef.current !== null) {
+		cancelAnimationFrame(rafRef.current);
+		rafRef.current = null;
+	}
+}
+
+function animateTo(
+	marker: google.maps.marker.AdvancedMarkerElement,
+	from: Pos,
+	to: Pos,
+	displayRef: Ref<Pos | null>,
+	rafRef: Ref<number | null>,
+) {
+	cancelAnim(rafRef);
+
+	const startTime = performance.now();
+
+	const step = (now: number) => {
+		const t = Math.min(1, (now - startTime) / ANIM_DURATION_MS);
+
+		// Linear interpolation — constant speed matches how a person walks.
+		const lat = from.lat + (to.lat - from.lat) * t;
+		const lng = from.lng + (to.lng - from.lng) * t;
+
+		marker.position = { lat, lng };
+		displayRef.current = { lat, lng };
+
+		if (t < 1) {
+			rafRef.current = requestAnimationFrame(step);
+		} else {
+			rafRef.current = null;
+		}
+	};
+
+	rafRef.current = requestAnimationFrame(step);
+}
+
 // ─── Hook ─────────────────────────────────────────────────────────────────────
 
 export function useUserMarker({ map, position }: UserMarkerParams) {
 	const markerRef =
 		useRef<google.maps.marker.AdvancedMarkerElement | null>(null);
 	const coneGroupRef = useRef<SVGGElement | null>(null);
+	const animRafRef = useRef<number | null>(null);
+	// Tracks the marker's current rendered position, which lags the raw GPS fix
+	// while an animation is in flight.
+	const displayPosRef = useRef<Pos | null>(null);
 
 	// ── Creation effect — runs once per map instance ───────────────────────────
-	// Waits for both map and position to be available, then creates the marker
-	// exactly once. Cleanup only cancels in-flight async — it never destroys
-	// the marker, so position updates don't trigger a destroy/recreate cycle.
 	useEffect(() => {
 		if (!map || !position || markerRef.current) return;
 
@@ -173,6 +225,9 @@ export function useUserMarker({ map, position }: UserMarkerParams) {
 			});
 		}
 
+		// Seed the display position so the first animated update has a valid origin.
+		displayPosRef.current = { lat: position.lat, lng: position.lng };
+
 		createAdvancedMarker(map, position, "Your Location", wrapper).then(
 			(marker) => {
 				if (cancelled) {
@@ -183,8 +238,6 @@ export function useUserMarker({ map, position }: UserMarkerParams) {
 			},
 		);
 
-		// Only cancel the async operation — do not remove the marker here.
-		// Marker lifetime is managed by the destruction effect below.
 		return () => {
 			cancelled = true;
 		};
@@ -193,15 +246,17 @@ export function useUserMarker({ map, position }: UserMarkerParams) {
 	// ── Destruction effect — removes the marker when map changes or on unmount ─
 	useEffect(() => {
 		return () => {
+			cancelAnim(animRafRef);
 			if (markerRef.current) {
 				removeMarker(markerRef.current);
 				markerRef.current = null;
 			}
 			coneGroupRef.current = null;
+			displayPosRef.current = null;
 		};
 	}, [map]);
 
-	// ── Position update effect — updates coordinates and heading on every tick ─
+	// ── Position update effect — smoothly animates to each new GPS fix ─────────
 	useEffect(() => {
 		const marker = markerRef.current;
 		if (!marker) return;
@@ -212,7 +267,28 @@ export function useUserMarker({ map, position }: UserMarkerParams) {
 		}
 
 		marker.map = map;
-		marker.position = { lat: position.lat, lng: position.lng };
+
+		const from = displayPosRef.current;
+		const to: Pos = { lat: position.lat, lng: position.lng };
+
+		if (!from) {
+			// Marker just became visible — place it instantly.
+			marker.position = to;
+			displayPosRef.current = to;
+		} else {
+			const dLat = Math.abs(to.lat - from.lat);
+			const dLng = Math.abs(to.lng - from.lng);
+
+			if (dLat > SNAP_THRESHOLD_DEG || dLng > SNAP_THRESHOLD_DEG) {
+				// Large jump (GPS re-acquisition or stale-cache flush) — snap instantly.
+				cancelAnim(animRafRef);
+				marker.position = to;
+				displayPosRef.current = to;
+			} else {
+				// Normal walking update — interpolate smoothly.
+				animateTo(marker, from, to, displayPosRef, animRafRef);
+			}
+		}
 
 		if (coneGroupRef.current) {
 			if (position.heading == null) {
