@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { LocationPicker } from "@/components/admin/LocationPicker";
 
@@ -10,8 +10,9 @@ import { Card, CardContent } from "@/components/ui/Card";
 import { showToast } from "@/components/ui/CustomToast";
 import { cn, formatCategoryName } from "@/lib/utils";
 
-import { createListingAction, updateListingAction } from "@/app/admin/actions";
+import { createListingAction, updateListingAction, deleteFeedbackAction } from "@/app/admin/actions";
 import { useListingImageUpload } from "@/hooks/admin/useListingImageUpload";
+import { feedbackService, type Feedback } from "@/services/feedback.service";
 
 import StorefrontRoundedIcon from "@mui/icons-material/StorefrontRounded";
 import AccessTimeRoundedIcon from "@mui/icons-material/AccessTimeRounded";
@@ -24,6 +25,7 @@ import ExpandMoreRoundedIcon from "@mui/icons-material/ExpandMoreRounded";
 import CheckRoundedIcon from "@mui/icons-material/CheckRounded";
 import AddRoundedIcon from "@mui/icons-material/AddRounded";
 import SaveRoundedIcon from "@mui/icons-material/SaveRounded";
+import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -199,6 +201,31 @@ export default function ListingForm({
 		removeImage,
 		setUploadError,
 	} = useListingImageUpload(initialData?.image_url, initialData?.image_path);
+
+	const [feedbacks, setFeedbacks] = useState<Feedback[]>([]);
+	const [feedbacksLoading, setFeedbacksLoading] = useState(false);
+	const [deletingFeedbackId, setDeletingFeedbackId] = useState<number | null>(null);
+
+	useEffect(() => {
+		if (!isEditing || !initialData?.listing_id) return;
+		setFeedbacksLoading(true);
+		feedbackService.getFeedbacksForListing(initialData.listing_id)
+			.then(setFeedbacks)
+			.catch(() => {})
+			.finally(() => setFeedbacksLoading(false));
+	}, [isEditing, initialData?.listing_id]);
+
+	const handleDeleteFeedback = async (feedbackId: number) => {
+		setDeletingFeedbackId(feedbackId);
+		const result = await deleteFeedbackAction(feedbackId);
+		if (result?.error) {
+			showToast.error("Failed to delete review", result.error);
+		} else {
+			setFeedbacks((prev) => prev.filter((f) => f.feedback_id !== feedbackId));
+			showToast.success("Review deleted", "The review has been removed.");
+		}
+		setDeletingFeedbackId(null);
+	};
 
 	// ── Handlers ──────────────────────────────────────────────────────────────
 
@@ -443,7 +470,7 @@ export default function ListingForm({
 					<SectionLabel>Operating hours &amp; price</SectionLabel>
 					<Card className="border-stroke-secondary bg-surface-secondary shadow-none">
 						<CardContent className="flex flex-col gap-4 pt-4">
-							<div className="flex gap-3">
+							<div className="flex flex-col gap-3 sm:flex-row">
 								<Input
 									label="Opens"
 									type="time"
@@ -463,7 +490,7 @@ export default function ListingForm({
 									wrapperClassName="sm:min-w-0"
 								/>
 							</div>
-							<div className="flex gap-3">
+							<div className="flex flex-col gap-3 sm:flex-row">
 								<Input
 									label="Min price"
 									name="price_min"
@@ -503,6 +530,59 @@ export default function ListingForm({
 						</CardContent>
 					</Card>
 				</div>
+
+				{/* ── 5. Reviews (edit only) ── */}
+				{isEditing && (
+					<div className="flex flex-col gap-1">
+						<SectionLabel>Reviews ({feedbacks.length})</SectionLabel>
+						<Card className="border-stroke-secondary bg-surface-secondary shadow-none">
+							<CardContent className="flex flex-col gap-2 pt-4">
+								{feedbacksLoading ? (
+									<p className="py-2 text-sm text-content-tertiary">Loading reviews…</p>
+								) : feedbacks.length === 0 ? (
+									<p className="py-2 text-sm text-content-tertiary">No reviews yet.</p>
+								) : (
+									feedbacks.map((feedback) => (
+										<div
+											key={feedback.feedback_id}
+											className="flex items-start gap-2 rounded-lg bg-surface-primary p-3"
+										>
+											<div className="flex-1 min-w-0">
+												<div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+													<span className="text-sm font-medium text-content-primary">
+														{feedback.nickname ?? "Anonymous"}
+													</span>
+													<span className="text-xs text-yellow-500 tracking-tight">
+														{"★".repeat(feedback.rating)}{"☆".repeat(5 - feedback.rating)}
+													</span>
+													<span className="text-xs text-content-tertiary">
+														{new Date(feedback.feedback_date).toLocaleDateString()}
+													</span>
+												</div>
+												{feedback.feedback_message && (
+													<p className="mt-1 line-clamp-3 text-sm text-content-secondary">
+														{feedback.feedback_message}
+													</p>
+												)}
+											</div>
+											<button
+												type="button"
+												onClick={() => handleDeleteFeedback(feedback.feedback_id)}
+												disabled={deletingFeedbackId === feedback.feedback_id}
+												className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-content-tertiary transition-colors hover:bg-surface-negative-subtle hover:text-content-negative disabled:opacity-40"
+												aria-label="Delete review"
+											>
+												{deletingFeedbackId === feedback.feedback_id
+													? <Spinner />
+													: <DeleteOutlineRoundedIcon fontSize="small" />}
+											</button>
+										</div>
+									))
+								)}
+							</CardContent>
+						</Card>
+					</div>
+				)}
 
 				{/* ── Error banner ── */}
 				{error && (
