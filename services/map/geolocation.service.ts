@@ -20,8 +20,8 @@ export function watchUserPosition(
 		onError,
 		{
 			enableHighAccuracy: true,
-			maximumAge: 10000, //10 seconds
-			timeout: 5000, // 5 seconds
+			maximumAge: 30000,
+			timeout: Infinity, // watchPosition retries continuously — never time out
 		},
 	);
 }

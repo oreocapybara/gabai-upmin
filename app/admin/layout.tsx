@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import { AdminDashboardSkeleton } from "@/components/admin/AdminDashboardSkeleton";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { isAdminSessionExpired } from "@/lib/admin-session";
 
 async function requireAdmin() {
 	const supabase = await createClient();
@@ -10,7 +11,11 @@ async function requireAdmin() {
 	} = await supabase.auth.getUser();
 
 	if (!user) {
-		redirect("/auth/login");
+		redirect("/login");
+	}
+
+	if (isAdminSessionExpired(user.last_sign_in_at)) {
+		redirect("/auth/signout?reason=session_expired");
 	}
 
 	const role = user.app_metadata?.role ?? user.user_metadata?.role;

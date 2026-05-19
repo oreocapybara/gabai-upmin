@@ -58,7 +58,7 @@ export default function Map({
 	}, [mapError]);
 
 	useEffect(() => {
-		setShowGeoError(Boolean(geoError));
+		if (geoError) setShowGeoError(true);
 	}, [geoError]);
 
 	useEffect(() => {

@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import Link from "next/link";
 import AlternateEmailRoundedIcon from "@mui/icons-material/AlternateEmailRounded";
@@ -45,6 +45,8 @@ export function LoginForm({
 	const [error, setError] = useState<string | null>(null);
 	const [isLoading, setIsLoading] = useState(false);
 	const router = useRouter();
+	const searchParams = useSearchParams();
+	const sessionExpired = searchParams.get("reason") === "session_expired";
 
 	const handleLogin = async (e: React.FormEvent) => {
 		e.preventDefault();
@@ -94,6 +96,13 @@ export function LoginForm({
 					Enter your credentials to access the dashboard
 				</p>
 			</div>
+
+			{/* Session expired notice */}
+			{sessionExpired && (
+				<div className="rounded-xl border border-amber-200 bg-amber-50 px-m py-s text-s text-amber-800">
+					Your session has expired after 3 hours. Please sign in again.
+				</div>
+			)}
 
 			{/* Form */}
 			<form onSubmit={handleLogin} className="flex flex-col gap-m">
