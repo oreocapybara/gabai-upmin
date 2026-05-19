@@ -269,7 +269,8 @@ export function MainDrawer({
 				return list.sort((a, b) => {
 					const aOpen = isListingOpen(a.opening_hours, a.closing_hours) ? 0 : 1;
 					const bOpen = isListingOpen(b.opening_hours, b.closing_hours) ? 0 : 1;
-					return aOpen - bOpen;
+					if (aOpen !== bOpen) return aOpen - bOpen;
+					return a.listing_name.localeCompare(b.listing_name);
 				});
 			case "price-asc":
 				return list.sort((a, b) => {
