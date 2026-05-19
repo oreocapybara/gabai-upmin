@@ -227,12 +227,12 @@ export default function AdminDashboardClient({
 												>
 													{/* Thumbnail + info */}
 													<div className="flex gap-3 px-4 pt-3 pb-2">
-														<div className="relative w-16 h-16 flex-shrink-0 rounded-lg overflow-hidden bg-surface-primary">
+														<div className="relative w-24 h-20 flex-shrink-0 rounded-lg overflow-hidden bg-surface-primary">
 															<Image
 																src={listing.image_url ?? "/logo.svg"}
 																alt={listing.listing_name}
 																fill
-																sizes="64px"
+																sizes="96px"
 																priority={i === 0}
 																draggable={false}
 																onContextMenu={(e) => e.preventDefault()}

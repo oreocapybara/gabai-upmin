@@ -31,11 +31,12 @@ export default function ListingCard({
 		<div className="border-b border-stroke-tertiary">
 			{/* Thumbnail + info */}
 			<div className="flex gap-3 px-4 pt-3 pb-2">
-				<div className="relative w-16 h-16 flex-shrink-0 rounded-lg overflow-hidden bg-surface-primary">
+				<div className="relative w-24 h-20 flex-shrink-0 rounded-lg overflow-hidden bg-surface-primary">
 					<Image
 						src={listing.image_url || "/logo.svg"}
 						alt={listing.listing_name}
 						fill
+						sizes="96px, 80px"
 						className={cn(
 							listing.image_url ? "object-cover" : "object-contain p-2",
 						)}
@@ -48,7 +49,7 @@ export default function ListingCard({
 				</div>
 
 				<div className="flex-1 min-w-0 flex flex-col gap-0.5">
-					<h6 className="font-display font-semibold line-clamp-2">
+					<h6 className="font-display font-semibold leading-snug line-clamp-2">
 						{listing.listing_name}
 					</h6>
 
