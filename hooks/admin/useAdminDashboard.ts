@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { deleteListingAction } from "@/app/admin/actions";
 import { showToast } from "@/components/ui/CustomToast";
 import type { AdminListing } from "@/services/admin.service";
@@ -8,6 +8,10 @@ export function useAdminDashboard(
 	onAfterChange?: () => void,
 ) {
 	const [listings, setListings] = useState(initialListings);
+
+	useEffect(() => {
+		setListings(initialListings);
+	}, [initialListings]);
 	const [deleteTarget, setDeleteTarget] = useState<{
 		id: number;
 		name: string;

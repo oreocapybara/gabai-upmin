@@ -64,6 +64,7 @@ async function ManagePageContent({
 	return (
 		<div className="max-w-4xl mx-auto">
 			<ListingForm
+				key={listingId ?? "create"}
 				categories={categories}
 				initialData={listing}
 				isEditing={isEditing}

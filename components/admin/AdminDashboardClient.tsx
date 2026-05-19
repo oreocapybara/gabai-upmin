@@ -2,10 +2,12 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import Image from "next/image";
+
 import Search from "@mui/icons-material/SearchRounded";
 import Plus from "@mui/icons-material/AddRounded";
 import EditRoundedIcon from "@mui/icons-material/EditRounded";
-import PersonAddRoundedIcon from "@mui/icons-material/PersonAddRounded";
+import Person from "@mui/icons-material/PersonAddRounded";
 
 import DeleteConfirmModal from "@/components/admin/DeleteConfirmModal";
 import RecentAdminLogTable from "@/components/admin/RecentAdminLogTable";
@@ -13,12 +15,12 @@ import { Button, buttonVariants } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import Navbar from "@/components/ui/Navbar";
+import DropdownMenu from "@/components/ui/DropdownMenu";
+
 import { cn, formatCategoryName, formatPriceRange, isListingOpen } from "@/lib/utils";
 import { useAdminDashboard } from "@/hooks/admin/useAdminDashboard";
 import type { AdminListing, AdminLogEntry } from "@/services/admin.service";
 import { getRecentAdminLogsAction } from "@/app/admin/actions";
-import Image from "next/image";
-import DropdownMenu from "@/components/ui/DropdownMenu";
 
 interface AdminDashboardClientProps {
 	initialListings: AdminListing[];
@@ -84,7 +86,7 @@ export default function AdminDashboardClient({
 									"w-auto decoration-transparent",
 								)}
 							>
-								<PersonAddRoundedIcon fontSize="small" />
+								<Person fontSize="small" />
 								Add user
 							</Link>
 							<Link
