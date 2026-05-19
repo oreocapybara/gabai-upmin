@@ -69,7 +69,7 @@ export function ListingDetails({
 	const open = isListingOpen(listing.opening_hours, listing.closing_hours);
 
 	return (
-		<div className="flex flex-col">
+		<div className="flex flex-col mt-4">
 			{/* ── Hero Image ─────────────────────────────────────────────────────── */}
 			<div className="relative aspect-square w-full bg-surface-secondary overflow-hidden rounded-xl mb-4">
 				<Image
@@ -83,10 +83,10 @@ export function ListingDetails({
 				{/* Open / Closed badge over the image */}
 				<span
 					className={cn(
-						"absolute top-3 right-3 px-2.5 py-1 rounded-full text-s font-semibold shadow-sm",
+						"absolute top-3 right-3 px-2.5 py-1 rounded-full text-s font-semibold shadow-sm leading-snug",
 						open
-							? "bg-content-positive-bold text-content-inverse-primary"
-							: "bg-content-negative-bold text-content-inverse-primary",
+							? "bg-content-positive text-content-inverse-primary"
+							: "bg-content-negative text-content-inverse-primary",
 					)}
 				>
 					{open ? "Open now" : "Closed"}

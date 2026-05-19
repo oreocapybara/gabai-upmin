@@ -197,7 +197,7 @@ export function MainDrawer({
 		transitionTo("list");
 		setActiveListing(null);
 		onCategoryChange?.("");
-		snapTo(60);
+		snapTo(30);
 	}, [onCategoryChange, searchQuery, snapTo, transitionTo]);
 
 	const handleGoBack = useCallback(() => {
