@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { LocationPicker } from "@/components/admin/LocationPicker";
 
@@ -35,9 +35,24 @@ interface Category {
 	category_name: string;
 }
 
+interface ListingData {
+	listing_id: number;
+	listing_name: string;
+	category_id: number;
+	coord_latitude: number | string;
+	coord_longitude: number | string;
+	image_url: string | null;
+	image_path: string | null;
+	opening_hours: string | null;
+	closing_hours: string | null;
+	price_min: number | null;
+	price_max: number | null;
+	description: string | null;
+}
+
 interface ListingFormProps {
 	categories: Category[];
-	initialData: any | null;
+	initialData: ListingData | null;
 	isEditing: boolean;
 }
 
@@ -181,7 +196,7 @@ export default function ListingForm({
 
 	const [formData, setFormData] = useState({
 		listing_name: initialData?.listing_name ?? "",
-		category_id: initialData?.category_id ?? categories[0]?.category_id ?? "",
+		category_id: initialData?.category_id ?? categories[0]?.category_id ?? 0,
 		coord_latitude: initialData?.coord_latitude ?? "",
 		coord_longitude: initialData?.coord_longitude ?? "",
 		image_url: initialData?.image_url ?? "",
@@ -193,6 +208,9 @@ export default function ListingForm({
 		description: initialData?.description ?? "",
 	});
 
+	// Captured once at mount — never updated — so we can diff against it.
+	const initialSnapshot = useRef({ ...formData });
+
 	const {
 		imagePreview,
 		pendingFile,
@@ -203,6 +221,15 @@ export default function ListingForm({
 		removeImage,
 		setUploadError,
 	} = useListingImageUpload(initialData?.image_url, initialData?.image_path);
+
+	const isDirty = useMemo(() => {
+		if (!isEditing) return true;
+		const snap = initialSnapshot.current;
+		const fieldsChanged = (Object.keys(formData) as Array<keyof typeof formData>).some(
+			(key) => String(formData[key] ?? "") !== String(snap[key] ?? ""),
+		);
+		return fieldsChanged || pendingFile !== null;
+	}, [formData, pendingFile, isEditing]);
 
 	const [feedbacks, setFeedbacks] = useState<Feedback[]>([]);
 	const [feedbacksLoading, setFeedbacksLoading] = useState(false);
@@ -281,7 +308,7 @@ export default function ListingForm({
 			// Clear the form so cached state never shows stale data on back-navigation
 			setFormData({
 				listing_name: "",
-				category_id: categories[0]?.category_id ?? "",
+				category_id: categories[0]?.category_id ?? 0,
 				coord_latitude: "",
 				coord_longitude: "",
 				image_url: "",
@@ -297,11 +324,11 @@ export default function ListingForm({
 
 			const msg = isEditing
 				? "Listing updated — your changes are live."
-				: "Listing created — it's now on the map.";
+				: "Listing created, it's now on the map.";
 			router.push(`/admin?notify=${encodeURIComponent(msg)}`);
 			router.refresh();
-		} catch (err: any) {
-			notify(err.message ?? "Failed to save listing", "error");
+		} catch (err: unknown) {
+			notify(err instanceof Error ? err.message : "Failed to save listing", "error");
 		} finally {
 			setIsLoading(false);
 		}
@@ -380,6 +407,8 @@ export default function ListingForm({
 									<p className="text-sm text-content-secondary">Uploading…</p>
 								</div>
 							)}
+							{/* Preview may be a blob URL — Next.js Image can't optimise local blobs */}
+							{/* eslint-disable-next-line @next/next/no-img-element */}
 							<img
 								src={imagePreview}
 								alt="Preview"
@@ -601,7 +630,7 @@ export default function ListingForm({
 						</Button>
 						<Button
 							type="submit"
-							disabled={isLoading || imageUploading}
+							disabled={isLoading || imageUploading || !isDirty}
 							leadingIcon={
 								isLoading ? <Spinner /> : isEditing ? <SaveRoundedIcon fontSize="small" /> : <AddRoundedIcon fontSize="small" />
 							}

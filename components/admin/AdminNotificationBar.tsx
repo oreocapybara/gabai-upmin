@@ -33,13 +33,13 @@ export function AdminNotificationBar({
 			) : (
 				<ErrorRoundedIcon className="text-content-inverse-primary shrink-0 !text-[18px]" />
 			)}
-			<p className="flex-1 min-w-0 text-sm font-medium text-content-inverse-primary truncate">
+			<p className="flex-1 min-w-0 text-sm font-medium text-content-inverse-primary">
 				{notification.message}
 			</p>
 			<button
 				onClick={onDismiss}
 				aria-label="Dismiss"
-				className="shrink-0 text-content-inverse-primary/60 hover:text-content-inverse-primary transition-colors"
+				className="shrink-0 text-content-inverse-primary hover:text-content-inverse-secondary transition-colors"
 			>
 				<CloseRoundedIcon className="!text-[16px]" />
 			</button>
@@ -58,7 +58,7 @@ export function AdminNotificationBar({
 					colors,
 				)}
 			>
-				<div className="mx-auto flex max-w-xl items-center gap-3 px-4 py-3">
+				<div className="mx-auto flex max-w-xl items-start gap-3 px-4 py-3">
 					{innerContent}
 				</div>
 			</div>
@@ -71,12 +71,12 @@ export function AdminNotificationBar({
 			className={cn(
 				"flex-none overflow-hidden",
 				"transition-[max-height] duration-300 ease-out",
-				notification ? "max-h-16" : "max-h-0",
+				notification ? "max-h-24" : "max-h-0",
 			)}
 		>
 			<div
 				className={cn(
-					"flex items-center gap-3 px-4 py-2.5 border-b",
+					"flex items-start gap-3 px-4 py-2.5 border-b",
 					"transition-[opacity,transform] duration-300 ease-out",
 					visible ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-1",
 					colors,
