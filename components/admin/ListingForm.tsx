@@ -1,17 +1,23 @@
 "use client";
 
-import React, { useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { LocationPicker } from "@/components/admin/LocationPicker";
+import { ImageCropModal } from "@/components/admin/ImageCropModal";
 
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent } from "@/components/ui/Card";
-import { showToast } from "@/components/ui/CustomToast";
-import { cn, formatCategoryName } from "@/lib/utils";
+import { AdminNotificationBar } from "@/components/admin/AdminNotificationBar";
+import { cn, formatCategoryName, formatRelativeTime } from "@/lib/utils";
+import type { CategoryOption } from "@/types";
+import { useNotification } from "@/hooks/common/useNotification";
 
-import { createListingAction, updateListingAction } from "@/app/admin/actions";
+import { createListingAction, updateListingAction, deleteFeedbackAction } from "@/app/admin/actions";
 import { useListingImageUpload } from "@/hooks/admin/useListingImageUpload";
+import { feedbackService, type Feedback } from "@/services/feedback.service";
+
+import { StaticStars } from "@/components/listing/StaticStars";
 
 import StorefrontRoundedIcon from "@mui/icons-material/StorefrontRounded";
 import AccessTimeRoundedIcon from "@mui/icons-material/AccessTimeRounded";
@@ -19,22 +25,34 @@ import NotesRoundedIcon from "@mui/icons-material/NotesRounded";
 import CloudUploadRoundedIcon from "@mui/icons-material/CloudUploadRounded";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import SwapHorizRoundedIcon from "@mui/icons-material/SwapHorizRounded";
+import CropFreeRoundedIcon from "@mui/icons-material/CropFreeRounded";
 import CategoryRoundedIcon from "@mui/icons-material/CategoryRounded";
 import ExpandMoreRoundedIcon from "@mui/icons-material/ExpandMoreRounded";
 import CheckRoundedIcon from "@mui/icons-material/CheckRounded";
 import AddRoundedIcon from "@mui/icons-material/AddRounded";
 import SaveRoundedIcon from "@mui/icons-material/SaveRounded";
+import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
-interface Category {
+interface ListingData {
+	listing_id: number;
+	listing_name: string;
 	category_id: number;
-	category_name: string;
+	coord_latitude: number | string;
+	coord_longitude: number | string;
+	image_url: string | null;
+	image_path: string | null;
+	opening_hours: string | null;
+	closing_hours: string | null;
+	price_min: number | null;
+	price_max: number | null;
+	description: string | null;
 }
 
 interface ListingFormProps {
-	categories: Category[];
-	initialData: any | null;
+	categories: CategoryOption[];
+	initialData: ListingData | null;
 	isEditing: boolean;
 }
 
@@ -64,7 +82,7 @@ function CategorySelect({
 }: {
 	value: string | number;
 	onSelect: (categoryId: number) => void;
-	categories: Category[];
+	categories: CategoryOption[];
 }) {
 	const [open, setOpen] = React.useState(false);
 	const ref = React.useRef<HTMLDivElement>(null);
@@ -170,14 +188,19 @@ export default function ListingForm({
 	const router = useRouter();
 	const fileInputRef = useRef<HTMLInputElement>(null);
 
+	const { notification, visible, notify, dismiss } = useNotification();
+
 	const [isLoading, setIsLoading] = useState(false);
-	const [error, setError] = useState<string | null>(null);
 	const [imageRemoved, setImageRemoved] = useState(false);
 	const [locationKey, setLocationKey] = useState(0);
 
+	const [cropSrc, setCropSrc] = useState<string | null>(null);
+	const [cropFileName, setCropFileName] = useState("");
+	const rawCropSrcRef = useRef<string | null>(null);
+
 	const [formData, setFormData] = useState({
 		listing_name: initialData?.listing_name ?? "",
-		category_id: initialData?.category_id ?? categories[0]?.category_id ?? "",
+		category_id: initialData?.category_id ?? 0,
 		coord_latitude: initialData?.coord_latitude ?? "",
 		coord_longitude: initialData?.coord_longitude ?? "",
 		image_url: initialData?.image_url ?? "",
@@ -189,16 +212,59 @@ export default function ListingForm({
 		description: initialData?.description ?? "",
 	});
 
+	// Captured once at mount — never updated — so we can diff against it.
+	const initialSnapshot = useRef({ ...formData });
+
+	// Revoke the raw (pre-crop) blob URL when the component unmounts
+	useEffect(() => {
+		const ref = rawCropSrcRef;
+		return () => { if (ref.current) URL.revokeObjectURL(ref.current); };
+	}, []);
+
 	const {
 		imagePreview,
 		pendingFile,
 		imageUploading,
 		uploadError,
-		handleImageUpload,
 		uploadPendingFile,
 		removeImage,
 		setUploadError,
+		setFileDirectly,
 	} = useListingImageUpload(initialData?.image_url, initialData?.image_path);
+
+	const isDirty = useMemo(() => {
+		if (!isEditing) return true;
+		const snap = initialSnapshot.current;
+		const fieldsChanged = (Object.keys(formData) as Array<keyof typeof formData>).some(
+			(key) => String(formData[key] ?? "") !== String(snap[key] ?? ""),
+		);
+		return fieldsChanged || pendingFile !== null;
+	}, [formData, pendingFile, isEditing]);
+
+	const [feedbacks, setFeedbacks] = useState<Feedback[]>([]);
+	const [feedbacksLoading, setFeedbacksLoading] = useState(false);
+	const [deletingFeedbackId, setDeletingFeedbackId] = useState<number | null>(null);
+
+	useEffect(() => {
+		if (!isEditing || !initialData?.listing_id) return;
+		setFeedbacksLoading(true);
+		feedbackService.getFeedbacksForListing(initialData.listing_id)
+			.then(setFeedbacks)
+			.catch(() => {})
+			.finally(() => setFeedbacksLoading(false));
+	}, [isEditing, initialData?.listing_id]);
+
+	const handleDeleteFeedback = async (feedbackId: number) => {
+		setDeletingFeedbackId(feedbackId);
+		const result = await deleteFeedbackAction(feedbackId);
+		if (result?.error) {
+			notify(`Failed to delete review: ${result.error}`, "error");
+		} else {
+			setFeedbacks((prev) => prev.filter((f) => f.feedback_id !== feedbackId));
+			notify("Review deleted.", "success");
+		}
+		setDeletingFeedbackId(null);
+	};
 
 	// ── Handlers ──────────────────────────────────────────────────────────────
 
@@ -210,20 +276,70 @@ export default function ListingForm({
 	};
 
 	const handleRemoveImage = () => {
+		if (rawCropSrcRef.current) {
+			URL.revokeObjectURL(rawCropSrcRef.current);
+			rawCropSrcRef.current = null;
+		}
 		removeImage();
 		setFormData((prev) => ({ ...prev, image_url: "", image_path: "" }));
 		setImageRemoved(true);
 		if (fileInputRef.current) fileInputRef.current.value = "";
 	};
 
+	const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+		const file = e.target.files?.[0];
+		if (!file) return;
+		if (fileInputRef.current) fileInputRef.current.value = "";
+		const validTypes = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+		if (!validTypes.includes(file.type)) {
+			notify("Invalid file type. Please upload a JPEG, PNG, WebP, or GIF.", "error");
+			return;
+		}
+		if (file.size > 5 * 1024 * 1024) {
+			notify("Image must be smaller than 5 MB.", "error");
+			return;
+		}
+		if (rawCropSrcRef.current) URL.revokeObjectURL(rawCropSrcRef.current);
+		rawCropSrcRef.current = URL.createObjectURL(file);
+		setCropFileName(file.name);
+		setCropSrc(rawCropSrcRef.current);
+	};
+
+	const handleCropConfirm = (blob: Blob, fileName: string) => {
+		const outName = fileName.replace(/\.[^.]+$/, ".jpg");
+		const croppedFile = new File([blob], outName, { type: "image/jpeg" });
+		const croppedBlobUrl = URL.createObjectURL(blob);
+		setFileDirectly(croppedFile, croppedBlobUrl);
+		setCropSrc(null);
+		setImageRemoved(false);
+	};
+
+	const handleCropCancel = () => {
+		// If no file was already staged, this was a fresh selection — revoke the raw blob
+		if (!pendingFile) {
+			if (rawCropSrcRef.current) {
+				URL.revokeObjectURL(rawCropSrcRef.current);
+				rawCropSrcRef.current = null;
+			}
+		}
+		setCropSrc(null);
+	};
+
+	const handleAdjust = () => {
+		if (rawCropSrcRef.current) setCropSrc(rawCropSrcRef.current);
+	};
+
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
+		if (!formData.category_id) {
+			notify("Please select a category.", "error");
+			return;
+		}
 		if (!formData.coord_latitude || !formData.coord_longitude) {
-			setError("Please tap the map to place a pin and set the listing location.");
+			notify("Please tap the map to place a pin and set the listing location.", "error");
 			return;
 		}
 		setIsLoading(true);
-		setError(null);
 		setUploadError(null);
 
 		try {
@@ -250,16 +366,10 @@ export default function ListingForm({
 
 			if (result?.error) throw new Error(result.error);
 
-			if (isEditing) {
-				showToast.success("Listing updated", "Your changes have been saved.");
-			} else {
-				showToast.success("Listing created", "It's now live on the map.");
-			}
-
 			// Clear the form so cached state never shows stale data on back-navigation
 			setFormData({
 				listing_name: "",
-				category_id: categories[0]?.category_id ?? "",
+				category_id: 0,
 				coord_latitude: "",
 				coord_longitude: "",
 				image_url: "",
@@ -273,10 +383,13 @@ export default function ListingForm({
 			setLocationKey((k) => k + 1);
 			handleRemoveImage();
 
-			router.push("/admin");
+			const msg = isEditing
+				? "Listing updated — your changes are live."
+				: "Listing created, it's now on the map.";
+			router.push(`/admin?notify=${encodeURIComponent(msg)}`);
 			router.refresh();
-		} catch (err: any) {
-			setError(err.message ?? "Failed to save listing");
+		} catch (err: unknown) {
+			notify(err instanceof Error ? err.message : "Failed to save listing", "error");
 		} finally {
 			setIsLoading(false);
 		}
@@ -285,6 +398,21 @@ export default function ListingForm({
 	// ── Render ────────────────────────────────────────────────────────────────
 
 	return (
+		<>
+		{cropSrc && (
+			<ImageCropModal
+				src={cropSrc}
+				fileName={cropFileName}
+				onConfirm={handleCropConfirm}
+				onCancel={handleCropCancel}
+			/>
+		)}
+		<AdminNotificationBar
+			notification={notification}
+			visible={visible}
+			onDismiss={dismiss}
+			mode="fixed"
+		/>
 		<div className="mx-auto max-w-xl px-4 pt-6 pb-32">
 			{/* Page header */}
 			<div className="mb-6">
@@ -305,10 +433,7 @@ export default function ListingForm({
 					ref={fileInputRef}
 					type="file"
 					accept="image/jpeg,image/png,image/webp,image/gif"
-					onChange={(e) => {
-						handleImageUpload(e);
-						setImageRemoved(false);
-					}}
+					onChange={handleFileSelect}
 					className="hidden"
 				/>
 
@@ -348,32 +473,43 @@ export default function ListingForm({
 									<p className="text-sm text-content-secondary">Uploading…</p>
 								</div>
 							)}
+							{/* Preview may be a blob URL — Next.js Image can't optimise local blobs */}
+							{/* eslint-disable-next-line @next/next/no-img-element */}
 							<img
 								src={imagePreview}
 								alt="Preview"
 								className="h-full w-full object-cover"
 							/>
-							{/* Overlay controls */}
-							<div className="absolute inset-x-0 bottom-0 flex gap-2 bg-gradient-to-t from-black/70 to-transparent px-3 pb-3 pt-10">
-								<Button
+							{/* Overlay controls — top-right */}
+							<div className="absolute right-2 top-2 z-10 flex items-center gap-1.5">
+								{pendingFile && !imageUploading && (
+									<button
+										type="button"
+										onClick={handleAdjust}
+										title="Adjust crop"
+										className="flex h-7 items-center gap-1 rounded-full bg-black/55 pl-1.5 pr-2.5 text-white backdrop-blur-sm transition-colors hover:bg-black/75 active:scale-95"
+									>
+										<CropFreeRoundedIcon style={{ fontSize: 14 }} />
+										<span className="text-xs font-medium">Adjust</span>
+									</button>
+								)}
+								<button
 									type="button"
-									variant="secondary"
-									size="sm"
-									className="flex-1"
 									onClick={() => fileInputRef.current?.click()}
-									leadingIcon={<SwapHorizRoundedIcon fontSize="small" />}
+									title="Replace image"
+									className="flex h-7 items-center gap-1 rounded-full bg-black/55 pl-1.5 pr-2.5 text-white backdrop-blur-sm transition-colors hover:bg-black/75 active:scale-95"
 								>
-									Replace
-								</Button>
-								<Button
+									<SwapHorizRoundedIcon style={{ fontSize: 14 }} />
+									<span className="text-xs font-medium">Replace</span>
+								</button>
+								<button
 									type="button"
-									variant="secondary"
-									size="sm"
 									onClick={handleRemoveImage}
-									leadingIcon={<CloseRoundedIcon fontSize="small" />}
+									title="Remove image"
+									className="flex h-7 w-7 items-center justify-center rounded-full bg-black/55 text-white backdrop-blur-sm transition-colors hover:bg-red-500/75 active:scale-95"
 								>
-									Remove
-								</Button>
+									<CloseRoundedIcon style={{ fontSize: 15 }} />
+								</button>
 							</div>
 						</div>
 					)}
@@ -443,7 +579,7 @@ export default function ListingForm({
 					<SectionLabel>Operating hours &amp; price</SectionLabel>
 					<Card className="border-stroke-secondary bg-surface-secondary shadow-none">
 						<CardContent className="flex flex-col gap-4 pt-4">
-							<div className="flex gap-3">
+							<div className="flex flex-col gap-3 sm:flex-row">
 								<Input
 									label="Opens"
 									type="time"
@@ -463,7 +599,7 @@ export default function ListingForm({
 									wrapperClassName="sm:min-w-0"
 								/>
 							</div>
-							<div className="flex gap-3">
+							<div className="flex flex-col gap-3 sm:flex-row">
 								<Input
 									label="Min price"
 									name="price_min"
@@ -504,12 +640,100 @@ export default function ListingForm({
 					</Card>
 				</div>
 
-				{/* ── Error banner ── */}
-				{error && (
-					<div className="rounded-xl border border-stroke-negative bg-surface-primary px-4 py-3">
-						<p className="text-sm text-content-negative">{error}</p>
-					</div>
-				)}
+				{/* ── 5. Reviews (edit only) ── */}
+				{isEditing && (() => {
+					const avgRating = feedbacks.length
+						? feedbacks.reduce((sum, f) => sum + f.rating, 0) / feedbacks.length
+						: 0;
+					return (
+						<div className="flex flex-col gap-1">
+							<SectionLabel>
+								Reviews{!feedbacksLoading && feedbacks.length > 0 ? ` (${feedbacks.length})` : ""}
+							</SectionLabel>
+							<Card className="border-stroke-secondary bg-surface-secondary shadow-none overflow-hidden">
+								<CardContent className="flex flex-col pt-4 gap-3">
+									{feedbacksLoading ? (
+										<div className="flex flex-col gap-2">
+											{[0, 1, 2].map((i) => (
+												<div key={i} className="animate-pulse rounded-lg bg-surface-primary p-3 space-y-2">
+													<div className="flex items-center justify-between gap-2">
+														<div className="h-3 w-24 rounded-full bg-gray-200" />
+														<div className="h-3 w-16 rounded-full bg-gray-200" />
+													</div>
+													<div className="h-3 w-20 rounded-full bg-gray-200" />
+													<div className="h-3 w-full rounded-full bg-gray-200" />
+													<div className="h-3 w-3/4 rounded-full bg-gray-200" />
+												</div>
+											))}
+										</div>
+									) : feedbacks.length === 0 ? (
+										<p className="py-2 text-center text-sm text-content-tertiary">No reviews yet.</p>
+									) : (
+										<>
+											{/* Rating summary */}
+											<div className="flex items-center gap-2 rounded-xl bg-surface-primary px-3 py-2.5 border border-stroke-tertiary">
+												<span className="text-2xl font-bold text-content-primary leading-none tabular-nums">
+													{avgRating.toFixed(1)}
+												</span>
+												<div className="flex flex-col gap-0.5">
+													<StaticStars rating={avgRating} />
+													<span className="text-xs text-content-tertiary leading-none">
+														{feedbacks.length} {feedbacks.length === 1 ? "review" : "reviews"}
+													</span>
+												</div>
+											</div>
+
+											{/* Scrollable review list */}
+											<div className="flex flex-col gap-2 max-h-80 overflow-y-auto -mx-1 px-1">
+												{feedbacks.map((feedback) => (
+													<div
+														key={feedback.feedback_id}
+														className="flex items-start gap-2 rounded-lg bg-surface-primary p-3 border border-stroke-tertiary"
+													>
+														<div className="flex-1 min-w-0">
+															<div className="flex items-start justify-between gap-2 mb-1">
+																<div className="flex flex-col gap-0.5">
+																	<span className="text-sm font-semibold text-content-primary leading-none">
+																		{feedback.nickname ?? "Anonymous"}
+																	</span>
+																	<div className="flex items-center gap-1">
+																		<StaticStars rating={feedback.rating} iconClassName="!text-[12px]" />
+																		<span className="text-xs text-content-tertiary leading-none">
+																			{feedback.rating.toFixed(1)}
+																		</span>
+																	</div>
+																</div>
+																<span className="text-xs text-content-tertiary shrink-0 mt-0.5">
+																	{formatRelativeTime(feedback.feedback_date)}
+																</span>
+															</div>
+															{feedback.feedback_message && (
+																<p className="text-sm text-content-secondary leading-relaxed">
+																	{feedback.feedback_message}
+																</p>
+															)}
+														</div>
+														<button
+															type="button"
+															onClick={() => handleDeleteFeedback(feedback.feedback_id)}
+															disabled={deletingFeedbackId === feedback.feedback_id}
+															className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-content-tertiary transition-colors hover:bg-surface-negative-subtle hover:text-content-negative disabled:opacity-40"
+															aria-label="Delete review"
+														>
+															{deletingFeedbackId === feedback.feedback_id
+																? <Spinner />
+																: <DeleteOutlineRoundedIcon fontSize="small" />}
+														</button>
+													</div>
+												))}
+											</div>
+										</>
+									)}
+								</CardContent>
+							</Card>
+						</div>
+					);
+				})()}
 
 				{/* ── Sticky action bar ── */}
 				<div className="fixed inset-x-0 bottom-0 border-t border-stroke-secondary bg-surface-primary/95 backdrop-blur supports-[backdrop-filter]:bg-surface-primary/80">
@@ -523,7 +747,7 @@ export default function ListingForm({
 						</Button>
 						<Button
 							type="submit"
-							disabled={isLoading || imageUploading}
+							disabled={isLoading || imageUploading || !isDirty}
 							leadingIcon={
 								isLoading ? <Spinner /> : isEditing ? <SaveRoundedIcon fontSize="small" /> : <AddRoundedIcon fontSize="small" />
 							}
@@ -536,5 +760,6 @@ export default function ListingForm({
 				</div>
 			</form>
 		</div>
+		</>
 	);
 }

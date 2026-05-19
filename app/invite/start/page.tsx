@@ -1,9 +1,11 @@
 "use client";
 
-import React, { Suspense } from "react";
+import { Suspense } from "react";
+import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useEffect, useState } from "react";
+import type { Provider } from "@supabase/supabase-js";
 
 function InviteStartContent() {
 	const params = useSearchParams();
@@ -18,7 +20,7 @@ function InviteStartContent() {
 			try {
 				const supabase = createClient();
 				await supabase.auth.signInWithOAuth({
-					provider: provider as any,
+					provider: provider as Provider,
 					options: {
 						redirectTo: redirect_to || undefined,
 						queryParams: email ? { login_hint: email } : undefined,
@@ -60,9 +62,9 @@ function InviteStartContent() {
 					{error && <p className="text-sm text-red-500">{error}</p>}
 
 					<div className="mt-4">
-						<a href="/" className="text-sm underline">
+						<Link href="/" className="text-sm underline">
 							Cancel
-						</a>
+						</Link>
 					</div>
 				</div>
 			</div>

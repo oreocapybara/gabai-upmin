@@ -1,5 +1,5 @@
 "use client";
-import { useRef, useState, useCallback, useMemo, useEffect } from "react";
+import { useRef, useState, useCallback, useMemo, useEffect, type MutableRefObject } from "react";
 import dynamic from "next/dynamic";
 import type { ListingWithCategory } from "@/types";
 import { MapMarker } from "./MapMarker";
@@ -39,8 +39,12 @@ export default function Map({
 	const [showMapError, setShowMapError] = useState(false);
 	const [showGeoError, setShowGeoError] = useState(false);
 	const [showGeoSupportError, setShowGeoSupportError] = useState(false);
+	const [isTracking, setIsTracking] = useState(false);
 
 	const containerRef = useRef<HTMLDivElement>(null);
+	const isTrackingRef = useRef(false);
+	const flyRafRef = useRef<number | null>(null);
+	const justActivatedRef = useRef(false);
 	const { map, mapError } = useMap(containerRef);
 
 	const { position, error: geoError, isSupported } = useGeolocation();
@@ -54,18 +58,15 @@ export default function Map({
 	}, [mapError]);
 
 	useEffect(() => {
-		setShowGeoError(Boolean(geoError));
+		if (geoError) setShowGeoError(true);
 	}, [geoError]);
 
 	useEffect(() => {
+		// isHydrated guard: isSupported starts false before the navigator check runs,
+		// which would fire a false "not supported" banner on every mount.
+		if (!isHydrated) return;
 		setShowGeoSupportError(!isSupported);
-	}, [isSupported]);
-
-	const selectedListing = useMemo(
-		() =>
-			initialListings.find((l) => l.listing_id === selectedListingId) ?? null,
-		[initialListings, selectedListingId],
-	);
+	}, [isSupported, isHydrated]);
 
 	// Derive destination from directions listing — null clears the route
 	const destination = directionsListing
@@ -79,6 +80,30 @@ export default function Map({
 	const isLocateDisabled = !isHydrated || !position;
 	const isDrawerOpen = drawerSnapState > 0;
 
+	// Break tracking the moment the user manually drags the map.
+	useEffect(() => {
+		if (!map) return;
+		const listener = map.addListener("dragstart", () => {
+			if (!isTrackingRef.current) return;
+			cancelFly(flyRafRef);
+			isTrackingRef.current = false;
+			setIsTracking(false);
+		});
+		return () => google.maps.event.removeListener(listener);
+	}, [map]);
+
+	// Follow the user whenever tracking is active and position updates.
+	// Skip the very first run — flyToPosition handles the initial pan.
+	useEffect(() => {
+		if (!isTracking || !map || !position) return;
+		if (justActivatedRef.current) {
+			justActivatedRef.current = false;
+			return;
+		}
+		cancelFly(flyRafRef);
+		map.panTo(position);
+	}, [isTracking, position, map]);
+
 	const handleSelect = useCallback(
 		(listing: ListingWithCategory) => {
 			onSelectListing?.(listing);
@@ -89,22 +114,21 @@ export default function Map({
 	const handleLocate = useCallback(() => {
 		if (!map || !position) return;
 
-		const bounds = map.getBounds();
-		const isInView = bounds?.contains(position) ?? false;
-
-		if (!isInView) {
-			animatePanTo(map, position, { durationMs: 800 });
-			const zoom = map.getZoom();
-			if (zoom !== undefined && zoom < 17) {
-				setTimeout(() => {
-					map.setZoom(17);
-				}, 800);
-			}
+		if (isTracking) {
+			cancelFly(flyRafRef);
+			isTrackingRef.current = false;
+			setIsTracking(false);
 			return;
 		}
 
-		animatePanTo(map, position, { durationMs: 500 });
-	}, [map, position]);
+		// Reset view orientation then fly to the user.
+		map.setHeading(0);
+		map.setTilt(45);
+		justActivatedRef.current = true;
+		isTrackingRef.current = true;
+		setIsTracking(true);
+		flyToPosition(map, position, flyRafRef);
+	}, [map, position, isTracking]);
 
 	const clusterer = useClusterer(map, !isRouteActive);
 
@@ -130,7 +154,7 @@ export default function Map({
 			<div className="h-full w-full relative z-0" ref={containerRef} />
 
 			{(showMapError || showGeoError || showGeoSupportError) && (
-				<div className="fixed top-20 right-4 z-[2200] flex flex-col gap-s">
+				<div className="fixed top-[72px] right-4 z-[10000] flex flex-col gap-s">
 					{mapError && showMapError && (
 						<NotificationBanner
 							variant="error"
@@ -171,7 +195,7 @@ export default function Map({
 
 			<Button
 				type="button"
-				variant="secondary"
+				variant={isTracking ? "default" : "secondary"}
 				size="icon"
 				className={cn(
 					"absolute right-4 z-50 h-10 w-10 shadow-md transition-all duration-300",
@@ -182,9 +206,9 @@ export default function Map({
 				onClick={handleLocate}
 				disabled={isLocateDisabled}
 				suppressHydrationWarning
-				aria-label="Locate current position"
+				aria-label={isTracking ? "Stop following my location" : "Center on my location"}
 			>
-				<MyLocationRounded className={cn("w-9 h-9")} />
+				<MyLocationRounded />
 			</Button>
 
 			{map &&
@@ -202,39 +226,76 @@ export default function Map({
 	);
 }
 
-function animatePanTo(
+function cancelFly(ref: MutableRefObject<number | null>) {
+	if (ref.current !== null) {
+		cancelAnimationFrame(ref.current);
+		ref.current = null;
+	}
+}
+
+function flyToPosition(
 	map: google.maps.Map,
 	target: google.maps.LatLngLiteral,
-	opts?: { durationMs?: number },
+	rafRef: MutableRefObject<number | null>,
 ) {
-	const duration = opts?.durationMs ?? 700;
-	const start = map.getCenter();
-	if (!start) {
+	cancelFly(rafRef);
+
+	const startCenter = map.getCenter();
+	const startZoom = map.getZoom() ?? 15;
+	const targetZoom = Math.max(startZoom, 17);
+
+	if (!startCenter) {
 		map.setCenter(target);
+		map.setZoom(targetZoom);
 		return;
 	}
 
-	const startLat = start.lat();
-	const startLng = start.lng();
-	const deltaLat = target.lat - startLat;
-	const deltaLng = target.lng - startLng;
+	const startLat = startCenter.lat();
+	const startLng = startCenter.lng();
+
+	// Rough distance proxy — no trig needed at this scale.
+	const isFar =
+		Math.abs(target.lat - startLat) > 0.008 ||
+		Math.abs(target.lng - startLng) > 0.008; // ~1 km
+
+	const duration = isFar ? 750 : 420;
+	// Dip zoom creates the "camera pulling back then swooping in" feel for far jumps.
+	const dipZoom = isFar ? Math.max(2, Math.min(startZoom, targetZoom) - 2.5) : -1;
 
 	const startTime = performance.now();
-	const easeInOut = (t: number) =>
-		t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+	// Cubic ease-in-out
+	const ease = (t: number) =>
+		t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2;
 
 	const step = (now: number) => {
-		const elapsed = now - startTime;
-		const t = Math.min(1, elapsed / duration);
-		const eased = easeInOut(t);
+		const t = Math.min(1, (now - startTime) / duration);
+		const e = ease(t);
 
 		map.setCenter({
-			lat: startLat + deltaLat * eased,
-			lng: startLng + deltaLng * eased,
+			lat: startLat + (target.lat - startLat) * e,
+			lng: startLng + (target.lng - startLng) * e,
 		});
 
-		if (t < 1) requestAnimationFrame(step);
+		if (isFar) {
+			// First half: ease out to dip zoom; second half: ease in to target zoom.
+			const zoom =
+				t < 0.5
+					? startZoom + (dipZoom - startZoom) * ease(t * 2)
+					: dipZoom + (targetZoom - dipZoom) * ease((t - 0.5) * 2);
+			map.setZoom(zoom);
+		} else if (startZoom < targetZoom) {
+			map.setZoom(startZoom + (targetZoom - startZoom) * e);
+		}
+
+		if (t < 1) {
+			rafRef.current = requestAnimationFrame(step);
+		} else {
+			rafRef.current = null;
+			map.setCenter(target);
+			map.setZoom(targetZoom);
+		}
 	};
 
-	requestAnimationFrame(step);
+	rafRef.current = requestAnimationFrame(step);
 }
+

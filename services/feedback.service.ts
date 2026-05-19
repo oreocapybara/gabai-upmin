@@ -2,6 +2,7 @@
 import { createClient } from "@/lib/supabase/client";
 
 export interface Feedback {
+	feedback_id: number;
 	listing_id: number;
 	nickname: string | null;
 	rating: number;
@@ -37,7 +38,7 @@ export const feedbackService = {
 		const supabase = createClient();
 		const { data, error } = await supabase
 			.from("Feedback")
-			.select("listing_id, nickname, rating, feedback_message, feedback_date")
+			.select("feedback_id, listing_id, nickname, rating, feedback_message, feedback_date")
 			.eq("listing_id", listingId)
 			.order("feedback_date", { ascending: false });
 
@@ -47,7 +48,7 @@ export const feedbackService = {
 	},
 
 	async insertFeedback(
-		feedback: Omit<Feedback, "feedback_date">,
+		feedback: Omit<Feedback, "feedback_date" | "feedback_id">,
 	): Promise<Feedback> {
 		const supabase = createClient();
 		const { data, error } = await supabase

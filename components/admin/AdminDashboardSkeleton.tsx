@@ -19,25 +19,23 @@ function NavbarSkeleton() {
 
 function ListingRowSkeleton() {
 	return (
-		<div className="border-b border-stroke-tertiary bg-surface-secondary last:border-b-0">
-			<div className="flex items-center p-1">
-				{/* Square image placeholder */}
-				<div className="relative w-28 h-28 flex-shrink-0 rounded-xl bg-gray-200 animate-pulse" />
+		<div className="border-b border-stroke-tertiary">
+			{/* Thumbnail + info */}
+			<div className="flex gap-3 px-4 pt-3 pb-2">
+				<div className="w-24 h-20 flex-shrink-0 rounded-lg bg-gray-200 animate-pulse" />
 
-				{/* Text + buttons */}
-				<div className="flex flex-col flex-auto gap-3 px-2">
-					<div className="flex flex-col gap-2">
-						<Bone className="h-4 w-3/4" />
-						<div className="flex items-center gap-2">
-							<Bone className="h-3 w-20 rounded-full" />
-							<Bone className="h-5 w-12 rounded-full" />
-						</div>
-					</div>
-					<div className="flex gap-2">
-						<Bone className="h-8 w-20 rounded-2xl" />
-						<Bone className="h-8 flex-1 rounded-2xl" />
-					</div>
+				<div className="flex-1 min-w-0 flex flex-col justify-evenly">
+					<Bone className="h-4 w-3/4" />
+					<Bone className="h-3 w-1/2 rounded-full" />
+					<Bone className="h-3 w-2/5 rounded-full" />
+					<Bone className="h-3 w-28 rounded-full" />
 				</div>
+			</div>
+
+			{/* Actions */}
+			<div className="flex gap-2 px-4 pb-3">
+				<Bone className="h-8 w-20 rounded-full" />
+				<Bone className="h-8 flex-1 rounded-full" />
 			</div>
 		</div>
 	);
@@ -58,7 +56,7 @@ function ActivityRowSkeleton() {
 
 export function AdminDashboardSkeleton() {
 	return (
-		<div className="h-screen overflow-hidden bg-surface-primary">
+		<div className="h-svh overflow-hidden bg-surface-primary">
 			<NavbarSkeleton />
 
 			<div className="flex h-full flex-col pt-16">
@@ -85,10 +83,12 @@ export function AdminDashboardSkeleton() {
 					<section className="flex flex-1 min-h-0 gap-6 overflow-hidden pt-4 pb-4 flex-col lg:flex-row">
 						{/* Listings column */}
 						<div className="flex flex-col flex-1 min-h-0">
-							<div className="overflow-hidden rounded-xl border border-stroke-secondary">
-								{Array.from({ length: 5 }).map((_, i) => (
-									<ListingRowSkeleton key={i} />
-								))}
+							<div className="flex-1 min-h-0 overflow-y-auto rounded-xl">
+								<div className="flex flex-col">
+									{Array.from({ length: 5 }).map((_, i) => (
+										<ListingRowSkeleton key={i} />
+									))}
+								</div>
 							</div>
 						</div>
 

@@ -3,9 +3,11 @@
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
-import { createClient as createAnonClient } from "@supabase/supabase-js";
+import { createServiceClient } from "@/lib/supabase/service";
 import type { User } from "@supabase/supabase-js";
 import { rateLimit } from "@/lib/rateLimit";
+import type { AdminUser } from "@/types";
+import type { AdminLogEntry } from "@/services/admin.service";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -54,10 +56,7 @@ async function tryInsertAdminLog(
 	if (!email) return;
 	try {
 		// Use service-role client so RLS never blocks the Admin lookup or log insert
-		const adminClient = createAnonClient(
-			process.env.NEXT_PUBLIC_SUPABASE_URL!,
-			process.env.SUPABASE_SERVICE_ROLE_KEY!,
-		);
+		const adminClient = createServiceClient();
 
 		const { data, error: lookupError } = await adminClient
 			.from("Admin")
@@ -85,15 +84,12 @@ async function tryInsertAdminLog(
 // ─── Actions ──────────────────────────────────────────────────────────────────
 
 export async function getAdminUsersAction(): Promise<{
-	data?: { admin_id: number; email: string; username: string }[];
+	data?: AdminUser[];
 	error?: string;
 }> {
 	try {
 		await requireAdmin();
-		const adminClient = createAnonClient(
-			process.env.NEXT_PUBLIC_SUPABASE_URL!,
-			process.env.SUPABASE_SERVICE_ROLE_KEY!,
-		);
+		const adminClient = createServiceClient();
 		const { data, error } = await adminClient
 			.from("Admin")
 			.select("admin_id, email, username")
@@ -112,15 +108,12 @@ export async function deleteAdminUserAction(
 		const { user } = await requireAdmin();
 		if (user.email === email) return { error: "You cannot delete your own account." };
 
-		const adminClient = createAnonClient(
-			process.env.NEXT_PUBLIC_SUPABASE_URL!,
-			process.env.SUPABASE_SERVICE_ROLE_KEY!,
-		);
+		const adminClient = createServiceClient();
 
 		// Find the auth user by email and delete them
 		const { data: { users }, error: listError } = await adminClient.auth.admin.listUsers({ perPage: 1000 });
 		if (!listError) {
-			const authUser = users.find((u) => u.email === email);
+			const authUser = users.find((u: User) => u.email === email);
 			if (authUser) {
 				const { error: deleteAuthError } = await adminClient.auth.admin.deleteUser(authUser.id);
 				if (deleteAuthError) return { error: deleteAuthError.message };
@@ -150,10 +143,7 @@ export async function createAdminUserAction(
 
 		// auth.admin.createUser bypasses the "Disable signups" project setting.
 		// signUp() with the publishable key returns 403 when signups are disabled.
-		const adminClient = createAnonClient(
-			process.env.NEXT_PUBLIC_SUPABASE_URL!,
-			process.env.SUPABASE_SERVICE_ROLE_KEY!,
-		);
+		const adminClient = createServiceClient();
 		const { error: signUpError } = await adminClient.auth.admin.createUser({
 			email,
 			password,
@@ -219,10 +209,7 @@ export async function deleteListingAction(listingId: number) {
 
 		if (listingRow?.image_path) {
 			const bucket = process.env.NEXT_PUBLIC_LISTING_BUCKET ?? "listing-images";
-			const adminClient = createAnonClient(
-				process.env.NEXT_PUBLIC_SUPABASE_URL!,
-				process.env.SUPABASE_SERVICE_ROLE_KEY!,
-			);
+			const adminClient = createServiceClient();
 			const { error: storageErr } = await adminClient.storage
 				.from(bucket)
 				.remove([listingRow.image_path]);
@@ -355,10 +342,7 @@ export async function updateListingAction(
 		//    image without a matching DB change.
 		if (oldPath && oldPath !== payload.image_path) {
 			const bucket = process.env.NEXT_PUBLIC_LISTING_BUCKET ?? "listing-images";
-			const adminClient = createAnonClient(
-				process.env.NEXT_PUBLIC_SUPABASE_URL!,
-				process.env.SUPABASE_SERVICE_ROLE_KEY!,
-			);
+			const adminClient = createServiceClient();
 			const { error: storageErr } = await adminClient.storage
 				.from(bucket)
 				.remove([oldPath]);
@@ -380,13 +364,28 @@ export async function updateListingAction(
 	}
 }
 
-export async function getRecentAdminLogsAction(limit = 15) {
+export async function deleteFeedbackAction(feedbackId: number) {
+	try {
+		const { supabase } = await requireAdmin();
+		const { error } = await supabase
+			.from("Feedback")
+			.delete()
+			.eq("feedback_id", feedbackId);
+		if (error) return { error: error.message };
+		revalidatePath("/admin");
+		revalidatePath("/");
+		return { success: true };
+	} catch (err) {
+		return { error: err instanceof Error ? err.message : "Unknown error" };
+	}
+}
+
+export async function getRecentAdminLogsAction(
+	limit = 15,
+): Promise<{ data?: AdminLogEntry[]; error?: string }> {
 	try {
 		await requireAdmin();
-		const adminClient = createAnonClient(
-			process.env.NEXT_PUBLIC_SUPABASE_URL!,
-			process.env.SUPABASE_SERVICE_ROLE_KEY!,
-		);
+		const adminClient = createServiceClient();
 		const { data, error } = await adminClient
 			.from("Admin_Log")
 			.select(
@@ -396,7 +395,13 @@ export async function getRecentAdminLogsAction(limit = 15) {
 			.limit(limit);
 
 		if (error) return { error: error.message };
-		return { data: data ?? [] };
+		// Supabase returns joined rows as arrays; unwrap to single objects.
+		const mapped: AdminLogEntry[] = (data ?? []).map((row) => ({
+			...row,
+			Listing: Array.isArray(row.Listing) ? (row.Listing[0] ?? null) : row.Listing,
+			Admin: Array.isArray(row.Admin) ? (row.Admin[0] ?? null) : row.Admin,
+		}));
+		return { data: mapped };
 	} catch (err) {
 		return { error: err instanceof Error ? err.message : "Unknown error" };
 	}

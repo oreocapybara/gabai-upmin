@@ -83,8 +83,8 @@ export function useListingImageUpload(
 			setPendingFile(null);
 
 			return { url: pub.publicUrl, path: data.path };
-		} catch (err: any) {
-			setUploadError(err.message || "Failed to upload image.");
+		} catch (err) {
+			setUploadError(err instanceof Error ? err.message : "Failed to upload image.");
 			return null;
 		} finally {
 			setImageUploading(false);
@@ -102,6 +102,15 @@ export function useListingImageUpload(
 		setUploadError(null);
 	};
 
+	// Set a file directly (e.g. after crop) without going through the file input
+	const setFileDirectly = (file: File, blobUrl: string) => {
+		if (blobUrlRef.current) URL.revokeObjectURL(blobUrlRef.current);
+		blobUrlRef.current = blobUrl;
+		setImagePreview(blobUrl);
+		setPendingFile(file);
+		setUploadError(null);
+	};
+
 	return {
 		imagePreview,
 		pendingFile,
@@ -111,5 +120,6 @@ export function useListingImageUpload(
 		uploadPendingFile,
 		removeImage,
 		setUploadError,
+		setFileDirectly,
 	};
 }

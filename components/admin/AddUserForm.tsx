@@ -146,7 +146,7 @@ export function AddUserForm({
 	const emailValid = !email || isValidUpEmail(email);
 	const emailError = emailTouched && email && !emailValid;
 
-	const { checks: pwChecks, score: pwScore } = getPasswordStrength(password);
+	const { score: pwScore } = getPasswordStrength(password);
 	const passwordWeak = password.length > 0 && pwScore < 4;
 	const passwordMismatch = confirmPassword.length > 0 && password !== confirmPassword;
 	const passwordMatch = confirmPassword.length > 0 && password === confirmPassword;
@@ -189,8 +189,8 @@ export function AddUserForm({
 	const handleGenerateInvite = () => {
 		setInviteEmailTouched(true);
 		if (!inviteEmail || !isValidUpEmail(inviteEmail)) return;
-		const redirectTo = `${window.location.origin}/login`;
-		const link = `${window.location.origin}/invite/start?provider=google&email=${encodeURIComponent(inviteEmail)}&redirect_to=${encodeURIComponent(redirectTo)}`;
+		const callbackUrl = `${window.location.origin}/callback?next=/admin&invited_email=${encodeURIComponent(inviteEmail)}`;
+		const link = `${window.location.origin}/invite/start?provider=google&email=${encodeURIComponent(inviteEmail)}&redirect_to=${encodeURIComponent(callbackUrl)}`;
 		setInviteLink(link);
 		setCopied(false);
 	};
@@ -230,7 +230,7 @@ export function AddUserForm({
 							<Input
 								id="email"
 								type="email"
-								label="Email"
+								label="Email*"
 								placeholder="user@up.edu.ph"
 								required
 								value={email}
@@ -259,7 +259,7 @@ export function AddUserForm({
 								<Input
 									id="password"
 									type={showPassword ? "text" : "password"}
-									label="Password"
+									label="Password*"
 									placeholder="••••••••"
 									required
 									value={password}
@@ -289,7 +289,7 @@ export function AddUserForm({
 							<Input
 								id="confirm-password"
 								type={showConfirmPassword ? "text" : "password"}
-								label="Confirm password"
+								label="Confirm password*"
 								placeholder="••••••••"
 								required
 								value={confirmPassword}

@@ -1,13 +1,20 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { deleteListingAction } from "@/app/admin/actions";
-import { showToast } from "@/components/ui/CustomToast";
 import type { AdminListing } from "@/services/admin.service";
+
+export type NotifyFn = (message: string, variant: "success" | "error") => void;
 
 export function useAdminDashboard(
 	initialListings: AdminListing[],
 	onAfterChange?: () => void,
+	notify?: NotifyFn,
 ) {
 	const [listings, setListings] = useState(initialListings);
+
+	useEffect(() => {
+		setListings(initialListings);
+	}, [initialListings]);
+
 	const [deleteTarget, setDeleteTarget] = useState<{
 		id: number;
 		name: string;
@@ -41,12 +48,14 @@ export function useAdminDashboard(
 
 		setIsDeleting(true);
 		const targetId = deleteTarget.id;
+		const targetName = deleteTarget.name;
 		const result = await deleteListingAction(targetId);
 
 		if (result?.error) {
-			showToast.error("Failed to delete listing", result.error);
+			notify?.(`Failed to delete "${targetName}": ${result.error}`, "error");
 		} else {
 			setListings((prev) => prev.filter((l) => l.listing_id !== targetId));
+			notify?.(`"${targetName}" was deleted.`, "success");
 			onAfterChange?.();
 		}
 

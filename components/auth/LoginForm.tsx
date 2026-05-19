@@ -4,8 +4,8 @@ import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { Suspense, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import AlternateEmailRoundedIcon from "@mui/icons-material/AlternateEmailRounded";
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
@@ -32,6 +32,16 @@ function GoogleIcon() {
 				fill="#EA4335"
 			/>
 		</svg>
+	);
+}
+
+function SessionExpiredBanner() {
+	const searchParams = useSearchParams();
+	if (searchParams.get("reason") !== "session_expired") return null;
+	return (
+		<div className="rounded-xl border border-amber-200 bg-amber-50 px-m py-s text-s text-amber-800">
+			Your session has expired after 3 hours. Please sign in again.
+		</div>
 	);
 }
 
@@ -95,13 +105,18 @@ export function LoginForm({
 				</p>
 			</div>
 
+			{/* Session expired notice */}
+			<Suspense fallback={null}>
+				<SessionExpiredBanner />
+			</Suspense>
+
 			{/* Form */}
 			<form onSubmit={handleLogin} className="flex flex-col gap-m">
 				{/* Email */}
 				<Input
 					id="email"
 					type="email"
-					label="Email"
+					label="Email*"
 					placeholder="admin@example.com"
 					required
 					value={email}
@@ -113,7 +128,7 @@ export function LoginForm({
 				{/* Password */}
 				<div className="flex flex-col gap-s">
 					<div className="flex items-center justify-between px-1">
-						<span className="text-s font-medium text-content-secondary">Password</span>
+						<span className="text-s font-medium text-content-secondary">Password*</span>
 						<Link
 							href="/forgot-password"
 							className="text-xs text-content-link transition-colors hover:text-content-link-hover active:text-content-link-pressed"
