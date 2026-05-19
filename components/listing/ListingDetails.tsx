@@ -13,6 +13,7 @@ import {
 	cn,
 	formatCategoryName,
 	formatPriceRange,
+	formatRelativeTime,
 	getListingHoursStatus,
 } from "@/lib/utils";
 
@@ -217,14 +218,7 @@ export function ListingDetails({
 										</div>
 									</div>
 									<span className="text-content-tertiary text-s shrink-0 mt-0.5">
-										{new Date(feedback.feedback_date).toLocaleDateString(
-											undefined,
-											{
-												month: "short",
-												day: "numeric",
-												year: "numeric",
-											},
-										)}
+										{formatRelativeTime(feedback.feedback_date)}
 									</span>
 								</div>
 

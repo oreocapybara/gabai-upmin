@@ -55,6 +55,29 @@ export function formatPriceRange(
 	return "";
 }
 
+// ─── Relative time ────────────────────────────────────────────────────────────
+
+const _rtf = new Intl.RelativeTimeFormat("en", { numeric: "auto" });
+
+export function formatRelativeTime(dateString: string): string {
+	const diffMs = Date.now() - new Date(dateString).getTime();
+	const diffSecs = Math.floor(diffMs / 1000);
+
+	if (diffSecs < 60) return "Just now";
+
+	const diffMins = Math.floor(diffSecs / 60);
+	if (diffMins < 60) return _rtf.format(-diffMins, "minute");
+
+	const diffHours = Math.floor(diffMins / 60);
+	if (diffHours < 24) return _rtf.format(-diffHours, "hour");
+
+	const diffDays = Math.floor(diffHours / 24);
+	if (diffDays < 7) return _rtf.format(-diffDays, "day");
+	if (diffDays < 28) return _rtf.format(-Math.floor(diffDays / 7), "week");
+	if (diffDays < 365) return _rtf.format(-Math.floor(diffDays / 30), "month");
+	return _rtf.format(-Math.floor(diffDays / 365), "year");
+}
+
 // ─── Star rating ──────────────────────────────────────────────────────────────
 
 export interface StarBreakdown {

@@ -9,12 +9,14 @@ import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent } from "@/components/ui/Card";
 import { AdminNotificationBar } from "@/components/admin/AdminNotificationBar";
-import { cn, formatCategoryName } from "@/lib/utils";
+import { cn, formatCategoryName, formatRelativeTime } from "@/lib/utils";
 import { useNotification } from "@/hooks/common/useNotification";
 
 import { createListingAction, updateListingAction, deleteFeedbackAction } from "@/app/admin/actions";
 import { useListingImageUpload } from "@/hooks/admin/useListingImageUpload";
 import { feedbackService, type Feedback } from "@/services/feedback.service";
+
+import { StaticStars } from "@/components/listing/StaticStars";
 
 import StorefrontRoundedIcon from "@mui/icons-material/StorefrontRounded";
 import AccessTimeRoundedIcon from "@mui/icons-material/AccessTimeRounded";
@@ -643,57 +645,99 @@ export default function ListingForm({
 				</div>
 
 				{/* ── 5. Reviews (edit only) ── */}
-				{isEditing && (
-					<div className="flex flex-col gap-1">
-						<SectionLabel>Reviews ({feedbacks.length})</SectionLabel>
-						<Card className="border-stroke-secondary bg-surface-secondary shadow-none">
-							<CardContent className="flex flex-col gap-2 pt-4">
-								{feedbacksLoading ? (
-									<p className="py-2 text-sm text-content-tertiary">Loading reviews…</p>
-								) : feedbacks.length === 0 ? (
-									<p className="py-2 text-sm text-content-tertiary">No reviews yet.</p>
-								) : (
-									feedbacks.map((feedback) => (
-										<div
-											key={feedback.feedback_id}
-											className="flex items-start gap-2 rounded-lg bg-surface-primary p-3"
-										>
-											<div className="flex-1 min-w-0">
-												<div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
-													<span className="text-sm font-medium text-content-primary">
-														{feedback.nickname ?? "Anonymous"}
-													</span>
-													<span className="text-xs text-yellow-500 tracking-tight">
-														{"★".repeat(feedback.rating)}{"☆".repeat(5 - feedback.rating)}
-													</span>
-													<span className="text-xs text-content-tertiary">
-														{new Date(feedback.feedback_date).toLocaleDateString()}
+				{isEditing && (() => {
+					const avgRating = feedbacks.length
+						? feedbacks.reduce((sum, f) => sum + f.rating, 0) / feedbacks.length
+						: 0;
+					return (
+						<div className="flex flex-col gap-1">
+							<SectionLabel>
+								Reviews{!feedbacksLoading && feedbacks.length > 0 ? ` (${feedbacks.length})` : ""}
+							</SectionLabel>
+							<Card className="border-stroke-secondary bg-surface-secondary shadow-none overflow-hidden">
+								<CardContent className="flex flex-col pt-4 gap-3">
+									{feedbacksLoading ? (
+										<div className="flex flex-col gap-2">
+											{[0, 1, 2].map((i) => (
+												<div key={i} className="animate-pulse rounded-lg bg-surface-primary p-3 space-y-2">
+													<div className="flex items-center justify-between gap-2">
+														<div className="h-3 w-24 rounded-full bg-gray-200" />
+														<div className="h-3 w-16 rounded-full bg-gray-200" />
+													</div>
+													<div className="h-3 w-20 rounded-full bg-gray-200" />
+													<div className="h-3 w-full rounded-full bg-gray-200" />
+													<div className="h-3 w-3/4 rounded-full bg-gray-200" />
+												</div>
+											))}
+										</div>
+									) : feedbacks.length === 0 ? (
+										<p className="py-2 text-center text-sm text-content-tertiary">No reviews yet.</p>
+									) : (
+										<>
+											{/* Rating summary */}
+											<div className="flex items-center gap-2 rounded-xl bg-surface-primary px-3 py-2.5 border border-stroke-tertiary">
+												<span className="text-2xl font-bold text-content-primary leading-none tabular-nums">
+													{avgRating.toFixed(1)}
+												</span>
+												<div className="flex flex-col gap-0.5">
+													<StaticStars rating={avgRating} />
+													<span className="text-xs text-content-tertiary leading-none">
+														{feedbacks.length} {feedbacks.length === 1 ? "review" : "reviews"}
 													</span>
 												</div>
-												{feedback.feedback_message && (
-													<p className="mt-1 line-clamp-3 text-sm text-content-secondary">
-														{feedback.feedback_message}
-													</p>
-												)}
 											</div>
-											<button
-												type="button"
-												onClick={() => handleDeleteFeedback(feedback.feedback_id)}
-												disabled={deletingFeedbackId === feedback.feedback_id}
-												className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-content-tertiary transition-colors hover:bg-surface-negative-subtle hover:text-content-negative disabled:opacity-40"
-												aria-label="Delete review"
-											>
-												{deletingFeedbackId === feedback.feedback_id
-													? <Spinner />
-													: <DeleteOutlineRoundedIcon fontSize="small" />}
-											</button>
-										</div>
-									))
-								)}
-							</CardContent>
-						</Card>
-					</div>
-				)}
+
+											{/* Scrollable review list */}
+											<div className="flex flex-col gap-2 max-h-80 overflow-y-auto -mx-1 px-1">
+												{feedbacks.map((feedback) => (
+													<div
+														key={feedback.feedback_id}
+														className="flex items-start gap-2 rounded-lg bg-surface-primary p-3 border border-stroke-tertiary"
+													>
+														<div className="flex-1 min-w-0">
+															<div className="flex items-start justify-between gap-2 mb-1">
+																<div className="flex flex-col gap-0.5">
+																	<span className="text-sm font-semibold text-content-primary leading-none">
+																		{feedback.nickname ?? "Anonymous"}
+																	</span>
+																	<div className="flex items-center gap-1">
+																		<StaticStars rating={feedback.rating} iconClassName="!text-[12px]" />
+																		<span className="text-xs text-content-tertiary leading-none">
+																			{feedback.rating.toFixed(1)}
+																		</span>
+																	</div>
+																</div>
+																<span className="text-xs text-content-tertiary shrink-0 mt-0.5">
+																	{formatRelativeTime(feedback.feedback_date)}
+																</span>
+															</div>
+															{feedback.feedback_message && (
+																<p className="text-sm text-content-secondary leading-relaxed">
+																	{feedback.feedback_message}
+																</p>
+															)}
+														</div>
+														<button
+															type="button"
+															onClick={() => handleDeleteFeedback(feedback.feedback_id)}
+															disabled={deletingFeedbackId === feedback.feedback_id}
+															className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-content-tertiary transition-colors hover:bg-surface-negative-subtle hover:text-content-negative disabled:opacity-40"
+															aria-label="Delete review"
+														>
+															{deletingFeedbackId === feedback.feedback_id
+																? <Spinner />
+																: <DeleteOutlineRoundedIcon fontSize="small" />}
+														</button>
+													</div>
+												))}
+											</div>
+										</>
+									)}
+								</CardContent>
+							</Card>
+						</div>
+					);
+				})()}
 
 				{/* ── Sticky action bar ── */}
 				<div className="fixed inset-x-0 bottom-0 border-t border-stroke-secondary bg-surface-primary/95 backdrop-blur supports-[backdrop-filter]:bg-surface-primary/80">
