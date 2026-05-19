@@ -12,9 +12,10 @@ import { ListingDetails } from "@/components/listing/ListingDetails";
 import { ReviewSection } from "@/components/listing/ReviewSection";
 import ListingList from "@/components/listing/ListingList";
 import DropdownMenu from "@/components/ui/DropdownMenu";
-import { NotificationBanner } from "@/components/ui/NotificationBanner";
+import { AdminNotificationBar } from "@/components/admin/AdminNotificationBar";
 
 import { useMounted } from "@/hooks/common/useMounted";
+import { useNotification } from "@/hooks/common/useNotification";
 import {
 	DRAWER_SNAP_DURATION_MS,
 	DRAWER_SPRING,
@@ -72,16 +73,14 @@ export function MainDrawer({
 	const [isTransitioning, setIsTransitioning] = useState(false);
 	const [activeListing, setActiveListing] = useState<ListingWithCategory | null>(null);
 	const [sortBy, setSortBy] = useState<SortOption>("default");
-	const { ratings: allRatings, isLoaded: ratingsLoaded } = useAllRatings();
+	const { ratings: allRatings, isLoaded: ratingsLoaded, refresh: refreshAllRatings } = useAllRatings();
 	const [pendingRating, setPendingRating] = useState(0);
-	const [reviewToast, setReviewToast] = useState<{
-		variant: "success" | "error";
-		title: string;
-		message: string;
-	} | null>(null);
+	const [feedbackVersion, setFeedbackVersion] = useState(0);
+	const { notification, visible, notify, dismiss } = useNotification();
 
 	const resetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const lastExternalListingId = useRef<string | number | null>(null);
+	const scrollRef = useRef<HTMLDivElement>(null);
 
 	// ── View transition helper ─────────────────────────────────────────────────
 
@@ -89,6 +88,7 @@ export function MainDrawer({
 		setIsTransitioning(true);
 		setTimeout(() => {
 			setView(next);
+			scrollRef.current?.scrollTo({ top: 0, behavior: "instant" });
 			setIsTransitioning(false);
 		}, VIEW_TRANSITION_MS);
 	}, []);
@@ -109,6 +109,11 @@ export function MainDrawer({
 		},
 		[],
 	);
+
+	// Scroll to top so the notification banner is always visible when it appears.
+	useEffect(() => {
+		if (visible) scrollRef.current?.scrollTo({ top: 0, behavior: "smooth" });
+	}, [visible]);
 
 	// ── Drawer drag hook ───────────────────────────────────────────────────────
 
@@ -191,6 +196,16 @@ export function MainDrawer({
 		}
 	}, [selectedListing]);
 
+	// Keep activeListing in sync when the listings prop updates (e.g. after a
+	// listing edit invalidates the server cache and the parent re-renders).
+	useEffect(() => {
+		setActiveListing((prev) => {
+			if (!prev) return prev;
+			const fresh = listings.find((l) => l.listing_id === prev.listing_id);
+			return fresh ?? prev;
+		});
+	}, [listings]);
+
 	useEffect(() => {
 		if (!searchQuery) return;
 		setSortBy("default");
@@ -213,20 +228,14 @@ export function MainDrawer({
 	const handleReviewSuccess = useCallback(() => {
 		transitionTo("details");
 		setPendingRating(0);
-		setReviewToast({
-			variant: "success",
-			title: "Review submitted",
-			message: "Thanks for sharing your feedback.",
-		});
-	}, [transitionTo]);
+		setFeedbackVersion((v) => v + 1);
+		refreshAllRatings();
+		notify("Review submitted — thanks for your feedback.");
+	}, [transitionTo, refreshAllRatings, notify]);
 
 	const handleReviewError = useCallback((message: string) => {
-		setReviewToast({
-			variant: "error",
-			title: "Review failed",
-			message,
-		});
-	}, []);
+		notify(message, "error");
+	}, [notify]);
 
 	const handleActionButton = useCallback(() => {
 		if (view === "list") snapTo(0);
@@ -392,6 +401,7 @@ export function MainDrawer({
 
 				{/* ── Scrollable content ── */}
 				<Box
+					ref={scrollRef}
 					className="bg-surface-primary pb-4 overflow-y-auto overflow-x-hidden h-full border-l-2 border-r-2 border-stroke-secondary"
 					style={{
 						minHeight: 100,
@@ -447,6 +457,16 @@ export function MainDrawer({
 							</div>
 						)}
 
+						{/* Notification bar — sits below sort chips, spans full drawer width */}
+						<div className="-mx-4">
+							<AdminNotificationBar
+								notification={notification}
+								visible={visible}
+								onDismiss={dismiss}
+								mode="inline"
+							/>
+						</div>
+
 						{view === "list" && (
 							<ListingList
 								listings={sortedListings}
@@ -465,6 +485,7 @@ export function MainDrawer({
 								onSeeReviews={() => transitionTo("reviews")}
 								onDirections={handleDirections}
 								isDirectionsActive={directionsListingId === activeListing.listing_id}
+								feedbackVersion={feedbackVersion}
 								onRate={(rating) => {
 									setPendingRating(rating);
 									transitionTo("reviews");
@@ -488,19 +509,6 @@ export function MainDrawer({
 					</div>
 				</Box>
 			</Drawer>
-
-			{reviewToast && createPortal(
-				<NotificationBanner
-					variant={reviewToast.variant}
-					title={reviewToast.title}
-					className="fixed top-[72px] right-4 z-[10000]"
-					autoHideMs={3500}
-					onDismiss={() => setReviewToast(null)}
-				>
-					{reviewToast.message}
-				</NotificationBanner>,
-				document.body,
-			)}
 
 			{/* ── Active directions banner — animates in/out above the puller ── */}
 			{bannerListing && createPortal(

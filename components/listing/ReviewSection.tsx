@@ -90,12 +90,13 @@ export function ReviewSection({
 					isDirectionsActive={isDirectionsActive}
 					averageRating={averageRating}
 					reviewCount={reviewCount}
+					ratingsLoaded={true}
 				/>
 			</div>
 
 			<form onSubmit={handleSubmit} className="flex flex-col gap-8">
 				<div>
-					<p className="font-display font-normal">Rate your experience</p>
+					<h6 className="font-display text-content-primary font-semibold">Rate your experience</h6>
 					<div className="flex flex-col items-center gap-2 bg-surface-secondary rounded-xl py-6 border border-stroke-secondary">
 						<StarRating
 							initialValue={userRating}

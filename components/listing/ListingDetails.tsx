@@ -13,7 +13,7 @@ import {
 	cn,
 	formatCategoryName,
 	formatPriceRange,
-	isListingOpen,
+	getListingHoursStatus,
 } from "@/lib/utils";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -24,6 +24,7 @@ interface ListingDetailsProps {
 	onDirections: (listing: ListingWithCategory) => void;
 	onRate: (rating: number) => void;
 	isDirectionsActive?: boolean;
+	feedbackVersion?: number;
 }
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
@@ -58,15 +59,16 @@ export function ListingDetails({
 	onDirections,
 	onRate,
 	isDirectionsActive = false,
+	feedbackVersion = 0,
 }: ListingDetailsProps) {
-	const { feedbacks, isLoading } = useFeedbacks(listing.listing_id);
+	const { feedbacks, isLoading } = useFeedbacks(listing.listing_id, feedbackVersion);
 
 	const averageRating = feedbacks.length
 		? feedbacks.reduce((sum, f) => sum + f.rating, 0) / feedbacks.length
 		: 0;
 
 	const ratingLabel = isLoading ? "–" : averageRating.toFixed(1);
-	const open = isListingOpen(listing.opening_hours, listing.closing_hours);
+	const hoursStatus = getListingHoursStatus(listing.opening_hours, listing.closing_hours);
 
 	return (
 		<div className="flex flex-col mt-4">
@@ -80,16 +82,22 @@ export function ListingDetails({
 					sizes="(max-width: 640px) 100vw, 640px"
 					className="object-cover"
 				/>
-				{/* Open / Closed badge over the image */}
+				{/* Open / Closed / No-hours badge over the image */}
 				<span
 					className={cn(
 						"absolute top-3 right-3 px-2.5 py-1 rounded-full text-s font-semibold shadow-sm leading-snug",
-						open
+						hoursStatus === "open"
 							? "bg-content-positive text-content-inverse-primary"
-							: "bg-content-negative text-content-inverse-primary",
+							: hoursStatus === "closed"
+								? "bg-content-negative text-content-inverse-primary"
+								: "bg-black/50 text-white backdrop-blur-sm",
 					)}
 				>
-					{open ? "Open now" : "Closed"}
+					{hoursStatus === "open"
+						? "Open now"
+						: hoursStatus === "closed"
+							? "Closed"
+							: "No hours"}
 				</span>
 			</div>
 
@@ -157,9 +165,10 @@ export function ListingDetails({
 
 			{/* ── Rate Widget ────────────────────────────────────────────────────── */}
 			<div className="mb-4 pb-4 border-b border-stroke-tertiary">
-				<h6 className="font-display font-semibold text-content-primary mb-3">
+				<h6 className="font-display font-semibold text-content-primary">
 					Rate your experience
 				</h6>
+				<p className="text-content-tertiary text-s mb-3">Tap a star to help out the next visitor.</p>
 				<div className="flex flex-col items-center gap-2 bg-surface-secondary rounded-xl py-5 border border-stroke-secondary">
 					<StarRating onRate={onRate} />
 				</div>

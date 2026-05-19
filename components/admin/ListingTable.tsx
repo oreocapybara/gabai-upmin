@@ -4,6 +4,7 @@ import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import DeleteConfirmModal from "./DeleteConfirmModal";
 import Edit from '@mui/icons-material/EditRounded';
+import { getListingHoursStatus } from "@/lib/utils";
 
 interface ListingWithCategory {
   listing_id: number;
@@ -68,7 +69,14 @@ export default function ListingTable({ initialListings }: ListingTableProps) {
                   <span className="text-gray-500 text-sm">
                     {listing.Category?.category_name || "Uncategorized"}
                   </span>
-                  <span className="text-green-700 text-sm">Open</span>
+                  {(() => {
+                    const s = getListingHoursStatus(listing.opening_hours, listing.closing_hours);
+                    return (
+                      <span className={s === "open" ? "text-green-700 text-sm" : s === "closed" ? "text-red-600 text-sm" : "text-gray-400 text-sm"}>
+                        {s === "open" ? "Open" : s === "closed" ? "Closed" : "Hours vary"}
+                      </span>
+                    );
+                  })()}
                 </div>
                 
                 {/* Action Buttons */}

@@ -3,7 +3,7 @@ import Image from "next/image";
 import { Button } from "@/components/ui/Button";
 import DirectionsIcon from "@mui/icons-material/Directions";
 import CancelIcon from "@mui/icons-material/CancelRounded";
-import { cn, formatCategoryName, formatPriceRange, isListingOpen } from "@/lib/utils";
+import { cn, formatCategoryName, formatPriceRange, getListingHoursStatus } from "@/lib/utils";
 import { StaticStars } from "@/components/listing/StaticStars";
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -25,12 +25,12 @@ export default function ListingCard({
 	reviewCount?: number;
 	ratingsLoaded?: boolean;
 }) {
-	const open = isListingOpen(listing.opening_hours, listing.closing_hours);
+	const hoursStatus = getListingHoursStatus(listing.opening_hours, listing.closing_hours);
 
 	return (
 		<div className="border-b border-stroke-tertiary">
 			{/* Thumbnail + info */}
-			<div className="flex gap-3 px-4 pt-3 pb-2">
+			<div className="flex gap-3 pt-3 pb-2">
 				<div className="relative w-24 h-20 flex-shrink-0 rounded-lg overflow-hidden bg-surface-primary">
 					<Image
 						src={listing.image_url || "/logo.svg"}
@@ -47,8 +47,9 @@ export default function ListingCard({
 						}}
 					/>
 				</div>
-
-				<div className="flex-1 min-w-0 flex flex-col gap-0.5">
+				
+				{/* Listing Information */}
+				<div className="flex-1 min-w-0 flex flex-col justify-evenly">
 					<h6 className="font-display font-semibold leading-snug line-clamp-2">
 						{listing.listing_name}
 					</h6>
@@ -61,10 +62,18 @@ export default function ListingCard({
 						<span
 							className={cn(
 								"text-xs font-medium",
-								open ? "text-content-positive" : "text-content-negative",
+								hoursStatus === "open"
+									? "text-content-positive"
+									: hoursStatus === "closed"
+										? "text-content-negative"
+										: "text-content-tertiary",
 							)}
 						>
-							{open ? "Open" : "Closed"}
+							{hoursStatus === "open"
+								? "Open"
+								: hoursStatus === "closed"
+									? "Closed"
+									: "Hours vary"}
 						</span>
 					</div>
 
@@ -94,7 +103,7 @@ export default function ListingCard({
 			</div>
 
 			{/* Actions */}
-			<div className="flex gap-2 px-4 pb-3">
+			<div className="flex gap-2 pb-3">
 				<Button
 					variant="secondary"
 					size="sm"

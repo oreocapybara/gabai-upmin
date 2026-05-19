@@ -1,24 +1,38 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { feedbackService } from "@/services/feedback.service";
 
 export type RatingStat = { avg: number; count: number };
 
-export function useAllRatings(): { ratings: Record<number, RatingStat>; isLoaded: boolean } {
+export function useAllRatings(): {
+	ratings: Record<number, RatingStat>;
+	isLoaded: boolean;
+	refresh: () => void;
+} {
 	const [ratings, setRatings] = useState<Record<number, RatingStat>>({});
 	const [isLoaded, setIsLoaded] = useState(false);
+	const [refreshToken, setRefreshToken] = useState(0);
 
 	useEffect(() => {
+		let mounted = true;
+
 		feedbackService
 			.getAllAverageRatings()
 			.then((data) => {
-				setRatings(data);
-				setIsLoaded(true);
+				if (mounted) {
+					setRatings(data);
+					setIsLoaded(true);
+				}
 			})
 			.catch(() => {
-				setRatings({});
-				setIsLoaded(true);
+				if (mounted) setIsLoaded(true);
 			});
-	}, []);
 
-	return { ratings, isLoaded };
+		return () => {
+			mounted = false;
+		};
+	}, [refreshToken]);
+
+	const refresh = useCallback(() => setRefreshToken((t) => t + 1), []);
+
+	return { ratings, isLoaded, refresh };
 }

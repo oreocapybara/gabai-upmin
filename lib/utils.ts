@@ -34,6 +34,16 @@ export function isListingOpen(
 		: current >= open && current < close;
 }
 
+export type ListingHoursStatus = "open" | "closed" | "unknown";
+
+export function getListingHoursStatus(
+	opening: string | null,
+	closing: string | null,
+): ListingHoursStatus {
+	if (!opening || !closing) return "unknown";
+	return isListingOpen(opening, closing) ? "open" : "closed";
+}
+
 export function formatPriceRange(
 	min: number | null,
 	max: number | null,

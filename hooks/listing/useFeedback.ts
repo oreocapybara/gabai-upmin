@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 
 import { feedbackService, type Feedback } from "@/services/feedback.service";
 
-export function useFeedbacks(listingId: number) {
+export function useFeedbacks(listingId: number, refreshToken = 0) {
 	const [feedbacks, setFeedbacks] = useState<Feedback[]>([]);
 	const [isLoading, setIsLoading] = useState(true);
 	const [error, setError] = useState<Error | null>(null);
@@ -38,7 +38,7 @@ export function useFeedbacks(listingId: number) {
 		return () => {
 			mounted = false;
 		};
-	}, [listingId]);
+	}, [listingId, refreshToken]);
 
 	return { feedbacks, isLoading, error };
 }
