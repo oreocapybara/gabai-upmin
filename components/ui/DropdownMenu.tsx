@@ -2,7 +2,7 @@
 import * as React from "react";
 import ArrowDown from "@mui/icons-material/KeyboardArrowDownRounded";
 import MenuRounded from "@mui/icons-material/MenuRounded";
-import { Category } from "../../types/index";
+import type { CategoryOption } from "@/types";
 import { getPinStyle } from "@/components/map/MapPin";
 import { formatCategoryName } from "@/lib/utils";
 
@@ -12,7 +12,7 @@ export default function DropdownMenu({
 	menuPlacement = "bottom",
 	defaultValue = "",
 }: {
-	categories: Category[];
+	categories: CategoryOption[];
 	onCategoryChange?: (categoryId: string) => void;
 	menuPlacement?: "top" | "bottom";
 	defaultValue?: string;

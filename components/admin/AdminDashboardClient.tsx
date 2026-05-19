@@ -20,6 +20,7 @@ import Navbar from "@/components/ui/Navbar";
 import DropdownMenu from "@/components/ui/DropdownMenu";
 
 import { cn, formatCategoryName, formatPriceRange, getListingHoursStatus } from "@/lib/utils";
+import type { CategoryOption } from "@/types";
 import { useNotification } from "@/hooks/common/useNotification";
 import { useAdminDashboard } from "@/hooks/admin/useAdminDashboard";
 import type { AdminListing, AdminLogEntry } from "@/services/admin.service";
@@ -28,7 +29,7 @@ import { StaticStars } from "@/components/listing/StaticStars";
 
 interface AdminDashboardClientProps {
 	initialListings: AdminListing[];
-	categories: { category_id: number; category_name: string }[];
+	categories: CategoryOption[];
 	recentLogs: AdminLogEntry[];
 }
 
@@ -60,7 +61,7 @@ export default function AdminDashboardClient({
 
 	const refreshLogs = async () => {
 		const result = await getRecentAdminLogsAction(15);
-		if (result?.data) setLogs((result.data as unknown as AdminLogEntry[]).slice(0, 15));
+		if (result?.data) setLogs(result.data.slice(0, 15));
 	};
 
 	const {

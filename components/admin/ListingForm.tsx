@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/Button";
 import { Card, CardContent } from "@/components/ui/Card";
 import { AdminNotificationBar } from "@/components/admin/AdminNotificationBar";
 import { cn, formatCategoryName, formatRelativeTime } from "@/lib/utils";
+import type { CategoryOption } from "@/types";
 import { useNotification } from "@/hooks/common/useNotification";
 
 import { createListingAction, updateListingAction, deleteFeedbackAction } from "@/app/admin/actions";
@@ -34,11 +35,6 @@ import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
-interface Category {
-	category_id: number;
-	category_name: string;
-}
-
 interface ListingData {
 	listing_id: number;
 	listing_name: string;
@@ -55,7 +51,7 @@ interface ListingData {
 }
 
 interface ListingFormProps {
-	categories: Category[];
+	categories: CategoryOption[];
 	initialData: ListingData | null;
 	isEditing: boolean;
 }
@@ -86,7 +82,7 @@ function CategorySelect({
 }: {
 	value: string | number;
 	onSelect: (categoryId: number) => void;
-	categories: Category[];
+	categories: CategoryOption[];
 }) {
 	const [open, setOpen] = React.useState(false);
 	const ref = React.useRef<HTMLDivElement>(null);

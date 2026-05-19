@@ -6,8 +6,7 @@ import { Badge } from "@/components/ui/Badge";
 import DeleteRoundedIcon from "@mui/icons-material/DeleteRounded";
 import WarningAmberRoundedIcon from "@mui/icons-material/WarningAmberRounded";
 import { getAdminUsersAction, deleteAdminUserAction } from "@/app/admin/actions";
-
-type AdminUser = { admin_id: number; email: string; username: string };
+import type { AdminUser } from "@/types";
 
 export function AdminUserList({ currentUserEmail }: { currentUserEmail: string }) {
 	const [users, setUsers] = useState<AdminUser[]>([]);

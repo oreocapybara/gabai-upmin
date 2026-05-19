@@ -51,8 +51,23 @@ export type Feedback = TableRow<"Feedback">;
 export type FeedbackInsert = TableInsert<"Feedback">;
 export type FeedbackUpdate = TableUpdate<"Feedback">;
 
-// If you need UI-friendly shapes (e.g. nested `coordinate`), create
-// mapped/transformed types here and use them in components.
+// ─── UI-friendly shapes ───────────────────────────────────────────────────────
+// These are narrow DTOs used by dropdowns and selects — they intentionally
+// do not extend the full DB row so callers aren't forced to fetch unused columns.
+
+/** Minimal category shape for use in dropdowns and selects. */
+export interface CategoryOption {
+	category_id: number;
+	category_name: string;
+}
+
+/** Admin user shape shared between server actions and the AdminUserList UI. */
+export interface AdminUser {
+	admin_id: number;
+	email: string;
+	username: string;
+}
+
 export interface Coordinate {
 	lat: number;
 	lng: number;
